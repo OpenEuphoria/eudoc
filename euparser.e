@@ -1,0 +1,316 @@
+include std/sequence.e
+include std/text.e
+include std/io.e
+include std/filesys.e
+include std/types.e
+include std/error.e
+
+include euphoria/tokenize.e
+
+include common.e
+
+-- Comment status: No, Source, File
+enum C_NO = 0, C_SOURCE, C_FILE
+
+
+-- Setup parser
+et_keep_blanks(TRUE)
+et_keep_comments(TRUE)
+et_string_numbers(TRUE)
+                                
+object tokens, tok
+integer idx = 0
+
+function next_token()
+	idx += 1
+	if idx > length(tokens[1]) then
+		return 0
+	end if
+	
+	tok = tokens[1][idx]
+	return 1
+end function
+
+procedure putback_token()
+	idx -= 1
+	tok = tokens[1][idx]
+end procedure
+
+function read_routine_sig()
+	sequence result = ""
+	integer hit_paren = 0, parens = 0
+		
+	while next_token() do
+		if tok[TTYPE] = T_LPAREN then
+			hit_paren = 1
+			parens += 1
+		elsif tok[TTYPE] = T_RPAREN then
+			parens -= 1
+		end if
+		
+		if find(tokens[1][idx - 1][TTYPE], { T_IDENTIFIER, T_KEYWORD, T_EQ, T_PLUSEQ, 
+			T_MINUSEQ, T_MULTIPLYEQ, T_DIVIDEEQ, T_LTEQ, T_GTEQ, T_NOTEQ, T_CONCATEQ,
+			T_PLUS, T_MINUS, T_MULTIPLY, T_DIVIDE, T_LT, T_GT, T_NOT, T_CONCAT, T_QPRINT }) and
+			not find(tok[TTYPE], { T_LPAREN, T_RPAREN, T_COMMA })
+		then
+			result &= ' '
+		end if
+		
+		if tok[TTYPE] = T_CHAR then
+			result &= '\''
+		elsif tok[TTYPE] = T_STRING then
+			result &= '"'
+		end if
+
+		result &= tok[TDATA]
+		
+		if find(tok[TTYPE], { T_COMMA }) then
+			result &= ' '
+		elsif tok[TTYPE] = T_CHAR then
+			result &= '\''
+		elsif tok[TTYPE] = T_STRING then
+			result &= '"'
+		end if
+		
+		if parens = 0 and hit_paren then
+			exit
+		end if
+	end while
+	
+	return result
+end function
+
+function read_var_sig()
+	integer multiSig = 0
+	integer id = 0         -- Can have up to 3 (global sequence name)
+	integer assignment = 0 -- Can have 1
+	integer value = 0      -- Can have 1
+	integer nesting = 0
+	sequence result = ""
+	
+	while next_token() do
+		-- Figure context
+		if find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER }) then
+			id += 1
+			
+			if id > 4 and value = 0 then
+				putback_token()
+				exit
+			end if
+		elsif find(tok[TTYPE], { T_EQ }) then
+			if assignment then
+				putback_token()
+				exit
+			else
+				assignment = 1
+			end if
+		elsif find(tok[TTYPE], { T_NUMBER, T_STRING, T_CHAR, T_IDENTIFIER }) then
+			value += 1
+			if value > 1 then
+				putback_token()
+				exit
+			end if
+		elsif find(tok[TTYPE], { T_COMMA }) and nesting = 0 then
+			multiSig = 1
+			exit
+		elsif find(tok[TTYPE], { T_LPAREN, T_LBRACKET, T_LBRACE }) then
+			value -= 1
+			nesting += 1
+		elsif find(tok[TTYPE], { T_PLUS, T_MINUS, T_MULTIPLY, T_DIVIDE, T_LT, T_GT, T_NOT, T_CONCAT, T_LPAREN,
+				T_LBRACE, T_LBRACKET, T_COMMA })
+		then
+			value -= 1
+		elsif find(tok[TTYPE], { T_RPAREN, T_RBRACE, T_RBRACKET }) then
+			value += 1
+			nesting -= 1
+		elsif (id and assignment and value) or (id and not assignment) then
+			putback_token()
+			exit
+		end if
+
+		-- Append/Format
+		if assignment then
+			-- Do nothing, do not append the actual value onto the docs
+
+		elsif find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER, T_EQ, T_NUMBER, T_STRING, T_CHAR }) or tok[TTYPE] >= T_DELIMITER then
+			if find(tokens[1][idx - 1][TTYPE], { T_IDENTIFIER, T_KEYWORD, T_EQ, T_PLUSEQ,
+						T_MINUSEQ, T_MULTIPLYEQ, T_DIVIDEEQ, T_LTEQ, T_GTEQ, T_NOTEQ, T_CONCATEQ,
+						T_PLUS, T_MINUS, T_MULTIPLY, T_DIVIDE, T_LT, T_GT, T_NOT, T_CONCAT, T_QPRINT }) and
+					not find(tok[TTYPE], { T_LPAREN, T_RPAREN, T_COMMA })
+			then
+				result &= ' '
+			elsif find(tok[TTYPE], { T_RBRACE }) then
+				result &= ' '
+			end if
+			
+			if tok[TTYPE] = T_CHAR then
+				result &= '\''
+			elsif tok[TTYPE] = T_STRING then
+				result &= '\"'
+			end if
+
+			result &= tok[TDATA]
+			
+			if tok[TTYPE] = T_CHAR then
+				result &= '\''
+			elsif tok[TTYPE] = T_STRING then
+				result &= '\"'
+			elsif find(tok[TTYPE], { T_COMMA, T_LBRACE }) then
+				result &= ' '
+			end if
+		elsif tok[TTYPE] = T_BLANK then
+			-- do nothing
+		else
+			exit
+		end if
+	end while
+
+	return { multiSig, result }
+end function
+
+function read_sig()
+	sequence result = ""
+
+	while next_token() do
+		if find(tok[TDATA], { "global", "export", "public" }) then
+			result = tok[TDATA]
+		elsif find(tok[TDATA], { "procedure", "function", "type" }) then
+			result &= ' ' & tok[TDATA]
+			result &= read_routine_sig()
+			exit
+		elsif tok[TTYPE] = T_BLANK then
+			-- Do nothing
+		else
+			putback_token()
+			sequence varSig = read_var_sig()
+			result &= varSig[2]
+			exit
+		end if
+	end while
+	
+	return trim(result)
+end function
+
+function read_comment_block()
+	sequence block = ""
+	
+	while next_token() do
+		if tok[TTYPE] = T_COMMENT then
+			if length(tok[TDATA]) < 4 then
+				block &= '\n'
+			else
+				block &= tok[TDATA][4..$] & '\n'
+			end if
+		else
+			putback_token()
+			exit
+		end if
+	end while
+	
+	return block
+end function
+
+export function parse_euphoria_source(sequence fname, object params)
+	integer in_comment = C_NO
+	object tmp
+	sequence content = "", signature
+	
+	-- Parse source file
+	idx = 0
+	tokens = et_tokenize_file(fname)
+
+	-- Any errors during parsing?
+	if tokens[2] then
+		return {ERROR, et_error_string(tokens[2])}
+	end if
+
+	while next_token() do
+		if find(tok[TDATA], { "global", "public", "export", "override" }) then
+			-- These are items that do not have a comment associated with them
+			-- but we want them listed anyway, as they are exported in some fashion
+			sequence visibility = tok[TDATA]
+
+			if not next_token() then
+				crash("Unexpected end of the file")
+			end if
+
+			sequence varSigPrefix = trim(visibility & " " & tok[TDATA])
+
+			if find(tok[TDATA], { "function", "procedure", "type" }) then
+				putback_token()
+				putback_token()
+
+				tmp = "Undocumented"
+				signature = read_sig()
+
+				tmp = "Signature:\n" &
+					"include " & filename(fname) & "\n" &
+					signature & "\n\n" &
+					"Description:\n" & tmp
+				content &= convert_api_block(tmp) & "\n\n"
+
+			elsif find(tok[TDATA], { "include" }) then
+				-- Do nothing with a public include
+
+			else
+				-- Must be a global, public or exported variable/constant of some type
+				sequence var_sig = { 0, 0 }
+				loop do
+					tmp = ""
+					-- See if we have a comment block
+					if not next_token() then
+						crash("Unexpected end of the file")
+					end if
+
+					if tok[TTYPE] = T_COMMENT and match("--**", tok[TDATA]) then
+						tmp = tok[TDATA][5..$] & read_comment_block()
+					elsif tok[TTYPE] = T_BLANK then
+						-- do nothing
+						continue
+					else
+						putback_token()
+					end if
+
+					var_sig = read_var_sig()
+
+					tmp = "Signature:\n" &
+						"include " & filename(fname) & "\n" &
+						varSigPrefix & " " & trim(var_sig[2]) & "\n\n" &
+						"Description:\n" & tmp & "\n\n"
+					content &= convert_api_block(tmp) & "\n\n"
+				until var_sig[1] = 0
+
+				putback_token()
+			end if
+		elsif tok[TTYPE] = T_COMMENT or in_comment then
+			if in_comment then
+				putback_token()
+				tmp = read_comment_block()
+				
+				if in_comment = C_SOURCE and not has_signature(tmp) then
+					-- Look for the signature
+					signature = read_sig()
+									
+					tmp = "Signature:\n" &
+						"include " & filename(fname) & "\n" &
+						signature & "\n\n" &
+						"Description:\n" & 
+						"  " & tmp
+					-- We need to find the signature
+				end if
+
+				content &= convert_api_block(tmp) & "\n\n"
+				
+				in_comment = C_NO
+			elsif match("--****", tok[TDATA]) then
+				-- Start of file comment
+				in_comment = C_FILE
+			elsif match("--**", tok[TDATA]) then
+				-- Start of source comment
+				in_comment = C_SOURCE
+			end if
+		end if
+	end while
+	
+	return {API, content}
+end function
