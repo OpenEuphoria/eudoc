@@ -8,6 +8,7 @@ include std/regex.e as re
 include std/filesys.e
 include std/io.e
 include std/os.e
+include std/map.e as map
 
 include common.e
 include parsers.e as p
@@ -15,27 +16,6 @@ include parsers.e as p
 global integer verbose = 0
 object assembly_fname = 0, output_file = 0, template = 0
 sequence files = {} -- files to parse (in order)
-
-procedure opt_verbose()
-	verbose = 1
-end procedure
-
-procedure opt_assembly(object param)
-	assembly_fname = param
-end procedure
-
-procedure opt_output(object param)
-	output_file = param
-	-- TODO: Make the output directory
-end procedure
-
-procedure opt_template(object param)
-	template = read_file(param)
-	if atom(template) then
-		printf(1, "Could not read template file '%s'\n", {param})
-		abort(1)
-	end if
-end procedure
 
 procedure parse_args()
 	sequence opts = {
@@ -45,7 +25,19 @@ procedure parse_args()
 		{ "t", "template", "Template file",  HAS_PARAMETER, routine_id("opt_template") }
 	}
 
-	files = cmd_parse(opts)
+	map:map o = cmd_parse(opts)
+	verbose = map:get(o, "verbose", 0)
+	assembly_fname = map:get(o, "assembly", 0)
+	output_file = map:get(o, "output", 0)
+	template = map:get(o, "template", 0)
+
+	if sequence(template) then
+		template = read_file(template)
+		if atom(template) then
+			printf(1, "Could not read template file '%s'\n", { map:get(o, "template") })
+			abort(1)
+		end if
+	end if
 end procedure
 
 function fullpath(sequence fname)
