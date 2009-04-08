@@ -16,7 +16,7 @@ include parsers.e as p
 
 global integer verbose = 0
 object assembly_fname = 0, output_file = 0, template = 0
-sequence files = {} -- files to parse (in order)
+sequence files -- files to parse (in order)
 
 procedure parse_args()
 	sequence opts = {
@@ -31,6 +31,7 @@ procedure parse_args()
 	assembly_fname = map:get(o, "assembly", 0)
 	output_file = map:get(o, "output", 0)
 	template = map:get(o, "template", 0)
+	files = map:get(o, "extras", {})
 
 	if sequence(template) then
 		template = read_file(template)
