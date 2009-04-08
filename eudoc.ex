@@ -9,6 +9,7 @@ include std/filesys.e
 include std/io.e
 include std/os.e
 include std/map.e as map
+include std/cmdline.e
 
 include common.e
 include parsers.e as p
@@ -19,10 +20,10 @@ sequence files = {} -- files to parse (in order)
 
 procedure parse_args()
 	sequence opts = {
-		{ "v", "verbose",  "Verbose output", NO_PARAMETER,  routine_id("opt_verbose") },
-		{ "a", "assembly", "Assembly file",  HAS_PARAMETER, routine_id("opt_assembly") },
-		{ "o", "output",   "Output file",    HAS_PARAMETER, routine_id("opt_output") },
-		{ "t", "template", "Template file",  HAS_PARAMETER, routine_id("opt_template") }
+		{ "v", "verbose",  "Verbose output", NO_PARAMETER},
+		{ "a", "assembly", "Assembly file",  HAS_PARAMETER },
+		{ "o", "output",   "Output file",    HAS_PARAMETER },
+		{ "t", "template", "Template file",  HAS_PARAMETER }
 	}
 
 	map:map o = cmd_parse(opts)
