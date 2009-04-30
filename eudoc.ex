@@ -18,15 +18,24 @@ global integer verbose = 0
 object assembly_fname = 0, output_file = 0, template = 0
 sequence files -- files to parse (in order)
 
+procedure extra_help()
+	puts(1, #'
+______________Note: The files named in the assembly file are processed
+              after any extra files supplied on the command line.
+              '
+		)
+end procedure
+
 procedure parse_args()
 	sequence opts = {
-		{ "v", "verbose",  "Verbose output", NO_PARAMETER},
-		{ "a", "assembly", "Assembly file",  HAS_PARAMETER },
-		{ "o", "output",   "Output file",    HAS_PARAMETER },
-		{ "t", "template", "Template file",  HAS_PARAMETER }
+		{ "v", "verbose",  "Verbose output", {NO_PARAMETER}},
+		{ "a", "assembly", "Assembly file",  {HAS_PARAMETER, "filename", ONCE} },
+		{ "o", "output",   "Output file",    {MANDATORY, HAS_PARAMETER, "filename",ONCE} },
+		{ "t", "template", "Template file",  {HAS_PARAMETER, "filename",ONCE}},
+		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
 	}
 
-	map:map o = cmd_parse(opts)
+	map:map o = cmd_parse(opts, routine_id("extra_help"))
 	verbose = map:get(o, "verbose", 0)
 	assembly_fname = map:get(o, "assembly", 0)
 	output_file = map:get(o, "output", 0)

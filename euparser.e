@@ -196,10 +196,10 @@ function read_comment_block()
 	
 	while next_token() do
 		if tok[TTYPE] = T_COMMENT then
-			if length(tok[TDATA]) < 4 then
+			if length(tok[TDATA]) < 3 then
 				block &= '\n'
 			else
-				block &= tok[TDATA][4..$] & '\n'
+				block &= trim(tok[TDATA][3..$]) & '\n'
 			end if
 		else
 			putback_token()
