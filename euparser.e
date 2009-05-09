@@ -4,6 +4,7 @@ include std/io.e
 include std/filesys.e
 include std/types.e
 include std/error.e
+include std/search.e
 
 include euphoria/tokenize.e
 
@@ -11,7 +12,6 @@ include common.e
 
 -- Comment status: No, Source, File
 enum C_NO = 0, C_SOURCE, C_FILE
-
 
 -- Setup parser
 et_keep_blanks(TRUE)
@@ -87,7 +87,7 @@ function read_var_sig()
 	integer value = 0      -- Can have 1
 	integer nesting = 0
 	sequence result = ""
-	
+
 	while next_token() do
 		-- Figure context
 		if find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER }) then
@@ -114,12 +114,17 @@ function read_var_sig()
 			multiSig = 1
 			exit
 		elsif find(tok[TTYPE], { T_LPAREN, T_LBRACKET, T_LBRACE }) then
-			value -= 1
+			if value > 0 then
+				value -= 1
+			end if
 			nesting += 1
 		elsif find(tok[TTYPE], { T_PLUS, T_MINUS, T_MULTIPLY, T_DIVIDE, T_LT, T_GT, T_NOT, T_CONCAT, T_LPAREN,
 				T_LBRACE, T_LBRACKET, T_COMMA })
 		then
-			value -= 1
+			if value > 0 then
+				value -= 1
+			end if
+
 		elsif find(tok[TTYPE], { T_RPAREN, T_RBRACE, T_RBRACKET }) then
 			value += 1
 			nesting -= 1
@@ -214,7 +219,30 @@ export function parse_euphoria_source(sequence fname, object params)
 	integer in_comment = C_NO
 	object tmp
 	sequence content = "", signature
+	sequence include_filename
+	integer pos
+	sequence path_data
 	
+	
+	path_data = pathinfo(fname, '/')
+	ifdef not UNIX then
+		path_data = lower(path_data)
+	end ifdef
+	 
+	
+	if ends("/std", path_data[PATH_DIR]) then
+		pos = length(path_data[PATH_DIR]) - 3
+		
+	else
+		pos = match("/std/", path_data[PATH_DIR])
+	end if
+	
+	if pos != 0 then
+		include_filename = path_data[PATH_DIR][pos + 1 .. $] & '/' & path_data[PATH_FILENAME]
+	else
+		include_filename = path_data[PATH_FILENAME]
+	end if
+		
 	-- Parse source file
 	idx = 0
 	tokens = et_tokenize_file(fname)
@@ -228,6 +256,7 @@ export function parse_euphoria_source(sequence fname, object params)
 		if find(tok[TDATA], { "global", "public", "export", "override" }) then
 			-- These are items that do not have a comment associated with them
 			-- but we want them listed anyway, as they are exported in some fashion
+
 			sequence visibility = tok[TDATA]
 
 			if not next_token() then
@@ -244,10 +273,11 @@ export function parse_euphoria_source(sequence fname, object params)
 				signature = read_sig()
 
 				tmp = "Signature:\n" &
-					"include " & filename(fname) & "\n" &
+					"include " & include_filename & "\n" &
 					signature & "\n\n" &
 					"Description:\n" & tmp
 				content &= convert_api_block(tmp) & "\n\n"
+				tmp = ""
 
 			elsif find(tok[TDATA], { "include" }) then
 				-- Do nothing with a public include
@@ -261,9 +291,14 @@ export function parse_euphoria_source(sequence fname, object params)
 					if not next_token() then
 						crash("Unexpected end of the file")
 					end if
-
-					if tok[TTYPE] = T_COMMENT and match("--**", tok[TDATA]) then
-						tmp = tok[TDATA][5..$] & read_comment_block()
+					
+					if tok[TTYPE] = T_COMMENT and begins("--**", tok[TDATA]) then
+						if begins("--****", tok[TDATA]) then
+							tmp = tok[TDATA][7..$]
+						else
+							tmp = tok[TDATA][5..$]
+						end if
+						tmp &= read_comment_block()
 					elsif tok[TTYPE] = T_BLANK then
 						-- do nothing
 						continue
@@ -274,11 +309,12 @@ export function parse_euphoria_source(sequence fname, object params)
 					var_sig = read_var_sig()
 
 					tmp = "Signature:\n" &
-						"include " & filename(fname) & "\n" &
+						"include " & include_filename & "\n" &
 						varSigPrefix & " " & trim(var_sig[2]) & "\n\n" &
 						"Description:\n" & tmp & "\n\n"
 					content &= convert_api_block(tmp) & "\n\n"
 				until var_sig[1] = 0
+				tmp = ""
 
 				putback_token()
 			end if
@@ -292,7 +328,7 @@ export function parse_euphoria_source(sequence fname, object params)
 					signature = read_sig()
 									
 					tmp = "Signature:\n" &
-						"include " & filename(fname) & "\n" &
+						"include " & include_filename & "\n" &
 						signature & "\n\n" &
 						"Description:\n" & 
 						"  " & tmp
@@ -300,14 +336,20 @@ export function parse_euphoria_source(sequence fname, object params)
 				end if
 
 				content &= convert_api_block(tmp) & "\n\n"
+				tmp = ""
 				
 				in_comment = C_NO
-			elsif match("--****", tok[TDATA]) then
+				
+			elsif begins("--****", tok[TDATA]) then
 				-- Start of file comment
 				in_comment = C_FILE
-			elsif match("--**", tok[TDATA]) then
+				tmp = ""
+				
+			elsif begins("--**", tok[TDATA]) then
 				-- Start of source comment
 				in_comment = C_SOURCE
+				tmp = ""
+				
 			end if
 		end if
 	end while
