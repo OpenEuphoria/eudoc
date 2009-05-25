@@ -90,6 +90,7 @@ procedure main()
 		abort(1)
 	end if
 
+	complete = "%%disallow={camelcase}\n"
 	if atom(template) then
 		template = "<html>\n" &
 			"<head>\n" &
