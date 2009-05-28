@@ -198,11 +198,20 @@ end function
 
 function read_comment_block()
 	sequence block = ""
+	integer in_eucode = 0
 	
 	while next_token() do
 		if tok[TTYPE] = T_COMMENT then
+			if match("<eucode>", tok[TDATA]) then
+				in_eucode = 1
+			elsif match("</eucode>", tok[TDATA]) then
+				in_eucode = 0
+			end if
+
 			if length(tok[TDATA]) < 3 then
 				block &= '\n'
+			elsif in_eucode then
+				block &= tok[TDATA][4..$] & '\n'
 			else
 				block &= trim(tok[TDATA][3..$]) & '\n'
 			end if
@@ -211,6 +220,11 @@ function read_comment_block()
 			exit
 		end if
 	end while
+
+	if in_eucode then
+		puts(1, "eucode was not ended\n")
+		abort(1)
+	end if
 	
 	return block
 end function
