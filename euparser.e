@@ -128,6 +128,13 @@ function read_var_sig()
 		elsif find(tok[TTYPE], { T_RPAREN, T_RBRACE, T_RBRACKET }) then
 			value += 1
 			nesting -= 1
+			
+		elsif tok[TTYPE] = T_COMMENT and begins("--**", tok[TDATA]) then
+			if not nesting then
+				putback_token()
+				exit
+			end if
+
 		elsif (id and assignment and value) or (id and not assignment) then
 			putback_token()
 			exit
@@ -199,7 +206,7 @@ end function
 function read_comment_block()
 	sequence block = ""
 	integer in_eucode = 0
-	
+
 	while next_token() do
 		if tok[TTYPE] = T_COMMENT then
 			if match("<eucode>", tok[TDATA]) then
