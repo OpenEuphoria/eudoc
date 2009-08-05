@@ -13,10 +13,10 @@ export enum
 	SOURCE_COMMENT
 
 constant
-	pre_eucode_begin = pre:new(#/\s*\<eucode\>\s*/),
-	pre_eucode_end = pre:new(#~^\s*\</eucode\>\s*$~),
-	pre_header = pre:new(#/\s*[\w\s0-9_]+:\s*$/),
-	pre_item_name = pre:new(#/\s*((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)/)
+	pre_eucode_begin = pre:new(`\s*\<eucode\>\s*`),
+	pre_eucode_end = pre:new(`^\s*\</eucode\>\s*$`),
+	pre_header = pre:new(`\s*[\w\s0-9_]+:\s*$`),
+	pre_item_name = pre:new(`\s*((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`)
 
 sequence processed_funcs = {}
 

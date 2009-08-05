@@ -229,7 +229,9 @@ function read_comment_block()
 	end while
 
 	if in_eucode then
-		puts(1, "eucode was not ended\n")
+		printf(1,"eucode was not ended (ln %d, col %d)\n"
+                 ,{  tok[ET_ERR_LINE], tok[ET_ERR_COLUMN] 
+                  })
 		abort(1)
 	end if
 	
@@ -270,7 +272,10 @@ export function parse_euphoria_source(sequence fname, object params)
 
 	-- Any errors during parsing?
 	if tokens[2] then
-		return {ERROR, et_error_string(tokens[2])}
+		return {ERROR, sprintf("(ln %d, col %d) %s"
+	                              , {tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN] 
+	                              , et_error_string(tokens[2])})
+      	       }
 	end if
 
 	while next_token() do

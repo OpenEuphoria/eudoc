@@ -19,10 +19,10 @@ object assembly_fname = 0, output_file = 0, template = 0
 sequence files -- files to parse (in order)
 
 procedure extra_help()
-	puts(1, #'
+	puts(1, `
 ______________Note: The files named in the assembly file are processed
               after any extra files supplied on the command line.
-              '
+              `
 		)
 end procedure
 
