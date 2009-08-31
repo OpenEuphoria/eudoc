@@ -43,7 +43,7 @@ procedure parse_args()
 	files = map:get(o, "extras", {})
 
 	if sequence(template) then
-		template = read_file(template)
+		template = read_file(template, TEXT_MODE)
 		if atom(template) then
 			printf(1, "Could not read template file '%s'\n", { map:get(o, "template") })
 			abort(1)

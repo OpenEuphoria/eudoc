@@ -10,7 +10,7 @@ include euparser.e   -- Euphoria source parser
 include genparser.e  -- Generic source parser
 
 function parse_creole_file(sequence fname, object opts)
-	object content = read_file(fname)
+	object content = read_file(fname, TEXT_MODE)
 
 	if atom(content) then
 		return {ERROR, "Could not read file"}
