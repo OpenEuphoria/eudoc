@@ -10,6 +10,7 @@ include std/io.e
 include std/os.e
 include std/map.e as map
 include std/cmdline.e
+include std/text.e
 
 include common.e
 include parsers.e as p
@@ -115,6 +116,10 @@ procedure main()
 	
 	-- process each file
 	for file_idx = 1 to length(files) do
+		integer opti 
+		sequence opts
+		integer nowiki
+		
 		fname = files[file_idx]
 		if length(fname) = 0 or match("#", fname) = 1 then
 			continue -- skip blank lines and comment lines
@@ -123,17 +128,26 @@ procedure main()
 			complete &= fname[2..$] & "\n"
 			continue
 		end if
-
+		
+		nowiki = 0
+		opti = find('<', fname)
+		if opti != 0 then
+			opts = stdseq:split(fname[opti + 1 .. $], ' ')
+			fname = fname[1 .. opti - 1]
+		
+			nowiki =  (find("nowiki", opts) != 0)
+		end if
 		if verbose then
 			printf(1, "Processing file %s... ", { fname })
 		end if
 
 		-- If using an assembly file, then all files are relative to the
 		-- location of that assembly file.
+		fname = trim(fname)
 		if sequence(assembly_fname) then
-			parsed = p:parse(join({base_path, fname}, SLASH), template)
+			parsed = p:parse(join({base_path, fname}, SLASH), template, {nowiki})
 		else
-			parsed = p:parse(fname, template)
+			parsed = p:parse(fname, template, {nowiki})
 		end if
 
 		switch parsed[1] do

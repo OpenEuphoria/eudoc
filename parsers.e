@@ -9,13 +9,19 @@ include common.e
 include euparser.e   -- Euphoria source parser
 include genparser.e  -- Generic source parser
 
-function parse_creole_file(sequence fname, object opts)
+function parse_creole_file(sequence fname, object opts, object extras)
 	object content = read_file(fname, TEXT_MODE)
 
 	if atom(content) then
 		return {ERROR, "Could not read file"}
 	end if
 
+	if sequence(extras) then
+		if extras[1] then
+			-- nowiki
+			content = "{{{\n" & content & "}}}\n"
+		end if
+	end if
 	return {CREOLE, content}
 end function
 
@@ -45,14 +51,14 @@ function get_parser(sequence fname)
 	return -1
 end function
 
-export function parse(sequence fname, sequence template)
+export function parse(sequence fname, sequence template, object parse_opts = {})
 	integer parser_id = get_parser(fname)
 	
 	if parser_id = -1 then
-		return {ERROR, "Unknown file type"}
+		return {ERROR, "Unknown file type '" & fname & "'"}
 	end if
 
 	start_new_file(fname)
 
-	return call_func(parsers[parser_id][2], {fname, parsers[parser_id][3]})
+	return call_func(parsers[parser_id][2], {fname, parsers[parser_id][3], parse_opts})
 end function

@@ -238,7 +238,7 @@ function read_comment_block()
 	return block
 end function
 
-export function parse_euphoria_source(sequence fname, object params)
+export function parse_euphoria_source(sequence fname, object params, object extras)
 	integer in_comment = C_NO
 	object tmp
 	sequence content = "", signature
