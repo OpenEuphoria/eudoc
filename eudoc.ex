@@ -110,6 +110,13 @@ procedure main()
 		base_path = current_dir()
 	end if
 
+	ifdef WINDOWS then
+		base_path = replace_all(base_path, '/', SLASH)
+	end ifdef
+	if base_path[$] = SLASH then
+		base_path = base_path[1 .. $-1]
+	end if
+
 	if verbose then
 		puts(1, "Base path: '" & base_path & "'\n")
 	end if
@@ -137,15 +144,22 @@ procedure main()
 		
 			nowiki =  (find("nowiki", opts) != 0)
 		end if
+		fname = trim(fname)
+		ifdef WINDOWS then
+			fname = replace_all(fname, '/', SLASH)
+		end ifdef
 		if verbose then
-			printf(1, "Processing file %s... ", { fname })
+			printf(1, "Processing file '%s'  ... ", { fname })
 		end if
 
 		-- If using an assembly file, then all files are relative to the
 		-- location of that assembly file.
-		fname = trim(fname)
 		if sequence(assembly_fname) then
-			parsed = p:parse(join({base_path, fname}, SLASH), template, {nowiki})
+			if not absolute_path(fname) then
+				parsed = p:parse(join({base_path, fname}, SLASH), template, {nowiki})
+			else
+				parsed = p:parse(fname, template, {nowiki})
+			end if
 		else
 			parsed = p:parse(fname, template, {nowiki})
 		end if
