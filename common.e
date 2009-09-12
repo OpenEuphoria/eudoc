@@ -56,7 +56,7 @@ export function convert_api_block(sequence block)
 					second = 1
 				end if
 				if atom(func_search) then
-					func_name = "Unknown"
+					func_name = "BadSig:" & lines[i+1]
 				else
 					func_name = func_name[func_search[5][1]..func_search[5][2]]
 					if eu:find(func_name, processed_funcs) then

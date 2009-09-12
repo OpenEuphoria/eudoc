@@ -97,6 +97,8 @@ function read_var_sig()
 				putback_token()
 				exit
 			end if
+		elsif tok[TTYPE] = T_DOLLAR then
+			-- do nothing
 		elsif find(tok[TTYPE], { T_EQ }) then
 			if assignment then
 				putback_token()
@@ -144,7 +146,12 @@ function read_var_sig()
 		if assignment then
 			-- Do nothing, do not append the actual value onto the docs
 
-		elsif find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER, T_EQ, T_NUMBER, T_STRING, T_CHAR }) or tok[TTYPE] >= T_DELIMITER then
+		elsif tok[TTYPE] = T_DOLLAR then
+			exit
+
+		elsif find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER, T_EQ, T_NUMBER, T_STRING, T_CHAR }) or 
+		      tok[TTYPE] >= T_DELIMITER 
+		then
 			if find(tokens[1][idx - 1][TTYPE], { T_IDENTIFIER, T_KEYWORD, T_EQ, T_PLUSEQ,
 						T_MINUSEQ, T_MULTIPLYEQ, T_DIVIDEEQ, T_LTEQ, T_GTEQ, T_NOTEQ, T_CONCATEQ,
 						T_PLUS, T_MINUS, T_MULTIPLY, T_DIVIDE, T_LT, T_GT, T_NOT, T_CONCAT, T_QPRINT }) and
@@ -295,16 +302,15 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				putback_token()
 				putback_token()
 
-				tmp = "Undocumented"
 				signature = read_sig()
-
-				tmp = "Signature:\n" &
-					"include " & include_filename & "\n" &
-					signature & "\n\n" &
-					"Description:\n" & tmp
-				content &= convert_api_block(tmp) & "\n\n"
-				tmp = ""
-
+				if length(signature) > 0 then
+					tmp = "Signature:\n" &
+						"include " & include_filename & "\n" &
+						signature & "\n\n" &
+						"Description:\n" & tmp
+					content &= convert_api_block(tmp) & "\n\n"
+					tmp = ""
+				end if
 			elsif find(tok[TDATA], { "include" }) then
 				-- Do nothing with a public include
 
@@ -333,12 +339,14 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					end if
 
 					var_sig = read_var_sig()
-
-					tmp = "Signature:\n" &
-						"include " & include_filename & "\n" &
-						varSigPrefix & " " & trim(var_sig[2]) & "\n\n" &
-						"Description:\n" & tmp & "\n\n"
-					content &= convert_api_block(tmp) & "\n\n"
+					var_sig[2] = trim(var_sig[2])
+					if length(var_sig[2]) > 0 then
+						tmp = "Signature:\n" &
+							"include " & include_filename & "\n" &
+							varSigPrefix & " " & var_sig[2] & "\n\n" &
+							"Description:\n" & tmp & "\n\n"
+						content &= convert_api_block(tmp) & "\n\n"
+					end if
 				until var_sig[1] = 0
 				tmp = ""
 
@@ -352,12 +360,13 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				if in_comment = C_SOURCE and not has_signature(tmp) then
 					-- Look for the signature
 					signature = read_sig()
-									
-					tmp = "Signature:\n" &
-						"include " & include_filename & "\n" &
-						signature & "\n\n" &
-						"Description:\n" & 
-						"  " & tmp
+					if length(signature) > 0 then					
+						tmp = "Signature:\n" &
+							"include " & include_filename & "\n" &
+							signature & "\n\n" &
+							"Description:\n" & 
+							"  " & tmp
+					end if
 					-- We need to find the signature
 				end if
 
