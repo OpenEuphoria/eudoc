@@ -279,8 +279,8 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 	-- Any errors during parsing?
 	if tokens[2] then
-		return {ERROR, sprintf("(ln %d, col %d) %s"
-	                              , {tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN] 
+		return {ERROR, sprintf("(file %s ln %d, col %d) %s"
+	                              , {fname, tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN] 
 	                              , et_error_string(tokens[2])})
       	       }
 	end if
