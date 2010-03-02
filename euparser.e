@@ -347,7 +347,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 							"Description:\n" & tmp & "\n\n"
 						content &= convert_api_block(tmp) & "\n\n"
 					end if
-				until var_sig[1] = 0
+				until var_sig[1] = 0 end loop
 				tmp = ""
 
 				putback_token()
