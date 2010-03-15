@@ -252,6 +252,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	sequence include_filename
 	integer pos
 	sequence path_data
+	object namespace = 0
 	
 	
 	path_data = pathinfo(fname, '/')
@@ -386,8 +387,13 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				tmp = ""
 				
 			end if
+		elsif equal(tok[TDATA],"namespace") then
+			if not next_token() then
+				crash("Unexpected end of the file")
+			end if
+			namespace = tok[TDATA]
 		end if
 	end while
 	
-	return {API, content}
+	return {API, content, namespace}
 end function

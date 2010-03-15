@@ -123,6 +123,7 @@ procedure main()
 	
 	-- process each file
 	for file_idx = 1 to length(files) do
+		object namespace
 		integer opti 
 		sequence opts
 		integer nowiki
@@ -163,6 +164,7 @@ procedure main()
 		else
 			parsed = p:parse(fname, template, {nowiki})
 		end if
+		
 
 		switch parsed[1] do
 			case ERROR then
@@ -171,12 +173,18 @@ procedure main()
 
 			case CREOLE then
 				parsed = parsed[2]
+				namespace = 0
 
 			case API then
+				namespace = parsed[3]
 				parsed = parsed[2]
 		end switch
 
-		complete &= sprintf("\n!!CONTEXT:%s\n\n%s", {fname, parsed})
+		if sequence(namespace) then
+			complete &= sprintf("\n!!CONTEXT:%s(%s)\n\n%s", {fname, namespace, parsed})
+		else
+			complete &= sprintf("\n!!CONTEXT:%s\n\n%s", {fname, parsed})
+		end if
 
 		if verbose then
 			puts(1, "done\n")
