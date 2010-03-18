@@ -309,7 +309,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						"include " & include_filename & "\n" &
 						signature & "\n\n" &
 						"Description:\n" & tmp
-					content &= convert_api_block(tmp) & "\n\n"
+					content &= convert_api_block(tmp,namespace) & "\n\n"						
 					tmp = ""
 				end if
 			elsif find(tok[TDATA], { "include" }) then
@@ -346,7 +346,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 							"include " & include_filename & "\n" &
 							varSigPrefix & " " & var_sig[2] & "\n\n" &
 							"Description:\n" & tmp & "\n\n"
-						content &= convert_api_block(tmp) & "\n\n"
+						content &= convert_api_block(tmp,namespace) & "\n\n"
 					end if
 				until var_sig[1] = 0 end loop
 				tmp = ""
@@ -371,7 +371,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					-- We need to find the signature
 				end if
 
-				content &= convert_api_block(tmp) & "\n\n"
+				content &= convert_api_block(tmp,namespace) & "\n\n"
 				tmp = ""
 				
 				in_comment = C_NO

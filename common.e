@@ -16,7 +16,7 @@ constant
 	pre_eucode_begin = pre:new(`\s*\<eucode\>\s*`),
 	pre_eucode_end = pre:new(`^\s*\</eucode\>\s*$`),
 	pre_header = pre:new(`\s*[\w\s0-9_]+:\s*$`),
-	pre_item_name = pre:new(`\s*((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`)
+	pre_item_name = pre:new(`\s*(\<built-in\>)?\s+((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`)
 
 sequence processed_funcs = {}
 
@@ -28,10 +28,11 @@ export function has_signature(sequence block)
 	return eu:match("Signature:", block) > 0
 end function
 
-export function convert_api_block(sequence block)
+export function convert_api_block(sequence block, object namespace)
 	object func_name, func_search, second = 0
 	sequence line, lines = s:split(block, "\n"), new_block = {}
 	integer in_eucode = 0, eustrip = 1, is_func = eu:match("Signature:", block), i = 1
+	sequence kill_me
 
 	while i <= length(lines) do
 		line = lines[i]
@@ -55,20 +56,27 @@ export function convert_api_block(sequence block)
 					func_search = pre:find(pre_item_name, func_name)
 					second = 1
 				end if
+				integer builtin = 0
 				if atom(func_search) then
 					func_name = "BadSig:" & lines[i+1]
 				else
-					func_name = func_name[func_search[5][1]..func_search[5][2]]
+					builtin = func_search[2][1] != func_search[2][2]
+					func_name = func_name[func_search[6][1]..func_search[6][2]]
 					if eu:find(func_name, processed_funcs) then
 						-- We've already processed this function
 						-- This can happen because functions/constants/etc can be defined
 						-- multiple times in an ifdef
 						return ""
 					end if
-
 					processed_funcs &= { func_name }
 				end if
-				new_block &= {"@[" & func_name & "|]"}
+				if builtin then
+					new_block &= {"@[:eu:" & func_name & "|]" }
+				elsif sequence(namespace) then
+					new_block &= {"@[:" & namespace & ":" & func_name & "|]"}
+				else					
+					new_block &= {"@[:" & func_name & "|]" }
+				end if
 				new_block &= {"==== " & func_name}
 				new_block &= { "<eucode>" }
 				if second then

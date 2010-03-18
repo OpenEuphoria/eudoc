@@ -181,7 +181,7 @@ procedure main()
 		end switch
 
 		if sequence(namespace) then
-			complete &= sprintf("\n!!CONTEXT:%s(%s)\n\n%s", {fname, namespace, parsed})
+			complete &= sprintf("\n!!CONTEXT:%s\n\n!!namespace:%s\n\n%s", {fname, namespace, parsed})
 		else
 			complete &= sprintf("\n!!CONTEXT:%s\n\n%s", {fname, parsed})
 		end if
