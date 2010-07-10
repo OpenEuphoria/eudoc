@@ -140,7 +140,7 @@ procedure main()
 		nowiki = 0
 		opti = find('<', fname)
 		if opti != 0 then
-			opts = stdseq:split(,fname[opti + 1 .. $])
+			opts = stdseq:split(fname[opti + 1 .. $])
 			fname = fname[1 .. opti - 1]
 		
 			nowiki =  (find("nowiki", opts) != 0)

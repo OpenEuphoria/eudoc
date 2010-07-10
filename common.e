@@ -30,7 +30,7 @@ end function
 
 export function convert_api_block(sequence block, object namespace)
 	object func_name, func_search, second = 0
-	sequence line, lines = s:split("\n", block), new_block = {}
+	sequence line, lines = s:split( block, "\n"), new_block = {}
 	integer in_eucode = 0, eustrip = 1, is_func = eu:match("Signature:", block), i = 1
 	sequence kill_me
 
