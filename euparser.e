@@ -14,10 +14,10 @@ include common.e
 enum C_NO = 0, C_SOURCE, C_FILE
 
 -- Setup parser
-et_keep_blanks(TRUE)
-et_keep_comments(TRUE)
-et_string_numbers(TRUE)
-                                
+keep_blanks(TRUE)
+keep_comments(TRUE)
+string_numbers(TRUE)
+
 object tokens, tok
 integer idx = 0
 
@@ -26,7 +26,7 @@ function next_token()
 	if idx > length(tokens[1]) then
 		return 0
 	end if
-	
+
 	tok = tokens[1][idx]
 	return 1
 end function
@@ -39,7 +39,7 @@ end procedure
 function read_routine_sig()
 	sequence result = ""
 	integer hit_paren = 0, parens = 0
-		
+
 	while next_token() do
 		if tok[TTYPE] = T_LPAREN then
 			hit_paren = 1
@@ -47,15 +47,15 @@ function read_routine_sig()
 		elsif tok[TTYPE] = T_RPAREN then
 			parens -= 1
 		end if
-		
-		if find(tokens[1][idx - 1][TTYPE], { T_IDENTIFIER, T_KEYWORD, T_EQ, T_PLUSEQ, 
+
+		if find(tokens[1][idx - 1][TTYPE], { T_IDENTIFIER, T_KEYWORD, T_EQ, T_PLUSEQ,
 			T_MINUSEQ, T_MULTIPLYEQ, T_DIVIDEEQ, T_LTEQ, T_GTEQ, T_NOTEQ, T_CONCATEQ,
 			T_PLUS, T_MINUS, T_MULTIPLY, T_DIVIDE, T_LT, T_GT, T_NOT, T_CONCAT, T_QPRINT }) and
 			not find(tok[TTYPE], { T_LPAREN, T_RPAREN, T_COMMA })
 		then
 			result &= ' '
 		end if
-		
+
 		if tok[TTYPE] = T_CHAR then
 			result &= '\''
 		elsif tok[TTYPE] = T_STRING then
@@ -63,7 +63,7 @@ function read_routine_sig()
 		end if
 
 		result &= tok[TDATA]
-		
+
 		if find(tok[TTYPE], { T_COMMA }) then
 			result &= ' '
 		elsif tok[TTYPE] = T_CHAR then
@@ -71,12 +71,12 @@ function read_routine_sig()
 		elsif tok[TTYPE] = T_STRING then
 			result &= '"'
 		end if
-		
+
 		if parens = 0 and hit_paren then
 			exit
 		end if
 	end while
-	
+
 	return result
 end function
 
@@ -92,7 +92,7 @@ function read_var_sig()
 		-- Figure context
 		if find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER }) then
 			id += 1
-			
+
 			if id > 4 and value = 0 then
 				putback_token()
 				exit
@@ -130,7 +130,7 @@ function read_var_sig()
 		elsif find(tok[TTYPE], { T_RPAREN, T_RBRACE, T_RBRACKET }) then
 			value += 1
 			nesting -= 1
-			
+
 		elsif tok[TTYPE] = T_COMMENT and begins("--**", tok[TDATA]) then
 			if not nesting then
 				putback_token()
@@ -149,8 +149,8 @@ function read_var_sig()
 		elsif tok[TTYPE] = T_DOLLAR then
 			exit
 
-		elsif find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER, T_EQ, T_NUMBER, T_STRING, T_CHAR }) or 
-		      tok[TTYPE] >= T_DELIMITER 
+		elsif find(tok[TTYPE], { T_KEYWORD, T_IDENTIFIER, T_EQ, T_NUMBER, T_STRING, T_CHAR }) or
+		      tok[TTYPE] >= T_DELIMITER
 		then
 			if find(tokens[1][idx - 1][TTYPE], { T_IDENTIFIER, T_KEYWORD, T_EQ, T_PLUSEQ,
 						T_MINUSEQ, T_MULTIPLYEQ, T_DIVIDEEQ, T_LTEQ, T_GTEQ, T_NOTEQ, T_CONCATEQ,
@@ -161,7 +161,7 @@ function read_var_sig()
 			elsif find(tok[TTYPE], { T_RBRACE }) then
 				result &= ' '
 			end if
-			
+
 			if tok[TTYPE] = T_CHAR then
 				result &= '\''
 			elsif tok[TTYPE] = T_STRING then
@@ -169,7 +169,7 @@ function read_var_sig()
 			end if
 
 			result &= tok[TDATA]
-			
+
 			if tok[TTYPE] = T_CHAR then
 				result &= '\''
 			elsif tok[TTYPE] = T_STRING then
@@ -206,7 +206,7 @@ function read_sig()
 			exit
 		end if
 	end while
-	
+
 	return trim(result)
 end function
 
@@ -237,11 +237,11 @@ function read_comment_block()
 
 	if in_eucode then
 		printf(1,"eucode was not ended (ln %d, col %d)\n"
-                 ,{  tok[ET_ERR_LINE], tok[ET_ERR_COLUMN] 
+                 ,{  tok[ET_ERR_LINE], tok[ET_ERR_COLUMN]
                   })
 		abort(1)
 	end if
-	
+
 	return block
 end function
 
@@ -253,36 +253,36 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	integer pos
 	sequence path_data
 	object namespace = 0
-	
-	
+
+
 	path_data = pathinfo(fname, '/')
 	ifdef not UNIX then
 		path_data = lower(path_data)
 	end ifdef
-	 
-	
+
+
 	if ends("/std", path_data[PATH_DIR]) then
 		pos = length(path_data[PATH_DIR]) - 3
-		
+
 	else
 		pos = match("/std/", path_data[PATH_DIR])
 	end if
-	
+
 	if pos != 0 then
 		include_filename = path_data[PATH_DIR][pos + 1 .. $] & '/' & path_data[PATH_FILENAME]
 	else
 		include_filename = path_data[PATH_FILENAME]
 	end if
-		
+
 	-- Parse source file
 	idx = 0
-	tokens = et_tokenize_file(fname)
+	tokens = tokenize_file(fname)
 
 	-- Any errors during parsing?
 	if tokens[2] then
 		return {ERROR, sprintf("(file %s ln %d, col %d) %s"
-	                              , {fname, tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN] 
-	                              , et_error_string(tokens[2])})
+	                              , {fname, tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN]
+	                              , error_string(tokens[2])})
       	       }
 	end if
 
@@ -309,7 +309,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						"include " & include_filename & "\n" &
 						signature & "\n\n" &
 						"Description:\n" & tmp
-					content &= convert_api_block(tmp,namespace) & "\n\n"						
+					content &= convert_api_block(tmp,namespace) & "\n\n"
 					tmp = ""
 				end if
 			elsif find(tok[TDATA], { "include" }) then
@@ -324,7 +324,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					if not next_token() then
 						crash("Unexpected end of the file")
 					end if
-					
+
 					if tok[TTYPE] = T_COMMENT and begins("--**", tok[TDATA]) then
 						if begins("--****", tok[TDATA]) then
 							tmp = tok[TDATA][7..$]
@@ -357,15 +357,15 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 			if in_comment then
 				putback_token()
 				tmp = read_comment_block()
-				
+
 				if in_comment = C_SOURCE and not has_signature(tmp) then
 					-- Look for the signature
 					signature = read_sig()
-					if length(signature) > 0 then					
+					if length(signature) > 0 then
 						tmp = "Signature:\n" &
 							"include " & include_filename & "\n" &
 							signature & "\n\n" &
-							"Description:\n" & 
+							"Description:\n" &
 							"  " & tmp
 					end if
 					-- We need to find the signature
@@ -373,19 +373,19 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 				content &= convert_api_block(tmp,namespace) & "\n\n"
 				tmp = ""
-				
+
 				in_comment = C_NO
-				
+
 			elsif begins("--****", tok[TDATA]) then
 				-- Start of file comment
 				in_comment = C_FILE
 				tmp = ""
-				
+
 			elsif begins("--**", tok[TDATA]) then
 				-- Start of source comment
 				in_comment = C_SOURCE
 				tmp = ""
-				
+
 			end if
 		elsif equal(tok[TDATA],"namespace") then
 			if not next_token() then
@@ -394,6 +394,6 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 			namespace = tok[TDATA]
 		end if
 	end while
-	
+
 	return {API, content, namespace}
 end function
