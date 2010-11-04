@@ -14,7 +14,7 @@ all : .SYMBOLIC build\eudoc.exe
 build\main-.c build\eudoc.mak : eudoc.ex $(EUDOC)
 	-mkdir build
 	cd build
-	euc -makefile-full -con ..\eudoc.ex
+	euc -makefile -con ..\eudoc.ex
 	cd ..
 
 build\eudoc.exe : build\main-.c build\eudoc.mak

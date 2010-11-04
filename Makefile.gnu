@@ -12,7 +12,7 @@ all : build/eudoc
 
 build/main-.c build/eudoc.mak : eudoc.ex $(EUDOC)
 	-mkdir build
-	cd build && euc -makefile-full ../eudoc.ex
+	cd build && euc -makefile ../eudoc.ex
 
 build/eudoc : build/main-.c build/eudoc.mak
 	 $(MAKE) -C build -f eudoc.mak
