@@ -1,3 +1,5 @@
+#!/usr/bin/env eui
+
 --
 -- Standard Documentation Tool for Euphoria
 --
