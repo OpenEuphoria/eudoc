@@ -43,7 +43,7 @@ procedure parse_args()
 	assembly_fname = map:get(o, "assembly", 0)
 	output_file = map:get(o, "output", 0)
 	template = map:get(o, "template", 0)
-	files = map:get(o, "extras", {})
+	files = map:get(o, OPT_EXTRAS, {})
 
 	if sequence(template) then
 		template = read_file(template, TEXT_MODE)
