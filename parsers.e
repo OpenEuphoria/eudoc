@@ -13,7 +13,7 @@ function parse_creole_file(sequence fname, object opts, object extras)
 	object content = read_file(fname, TEXT_MODE)
 
 	if atom(content) then
-		return {ERROR, "Could not read file"}
+		return {ERROR, sprintf( "Could not read file \'%s\' ", { fname } )}
 	end if
 
 	if sequence(extras) then
