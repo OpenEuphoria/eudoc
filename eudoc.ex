@@ -4,7 +4,7 @@
 -- Standard Documentation Tool for Euphoria
 --
 
-include std/sequence.e
+include std/sequence.e as seq
 include std/search.e
 include std/regex.e as re
 include std/filesys.e
@@ -13,12 +13,13 @@ include std/os.e
 include std/map.e as map
 include std/cmdline.e
 include std/text.e
+include std/convert.e
 
 include common.e
 include parsers.e as p
 
 global integer verbose = 0
-object assembly_fname = 0, output_file = 0, template = 0
+object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0, template = 0
 sequence files -- files to parse (in order)
 
 procedure extra_help()
@@ -35,15 +36,21 @@ procedure parse_args()
 		{ "a", "assembly", "Assembly file",  {HAS_PARAMETER, "filename", ONCE} },
 		{ "o", "output",   "Output file",    {MANDATORY, HAS_PARAMETER, "filename",ONCE} },
 		{ "t", "template", "Template file",  {HAS_PARAMETER, "filename",ONCE}},
+		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
 		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
 	}
 
-	map:map o = cmd_parse(opts, routine_id("extra_help"))
-	verbose = map:get(o, "verbose", 0)
+	map:map o      = cmd_parse(opts, routine_id("extra_help"))
+	verbose        = map:get(o, "verbose", 0)
 	assembly_fname = map:get(o, "assembly", 0)
-	output_file = map:get(o, "output", 0)
-	template = map:get(o, "template", 0)
-	files = map:get(o, OPT_EXTRAS, {})
+	output_file    = map:get(o, "output", 0)
+	template       = map:get(o, "template", 0)
+	dir_strip_cnt  = map:get(o, "strip", 0)
+	files          = map:get(o, OPT_EXTRAS, {})
+
+	if sequence(dir_strip_cnt) then
+		dir_strip_cnt = to_number(dir_strip_cnt)
+	end if
 
 	if sequence(template) then
 		template = read_file(template, TEXT_MODE)
@@ -83,7 +90,7 @@ end function
 
 procedure main()
 	object parsed
-	sequence fname, complete = {}
+	sequence fname, out_fname, complete = {}
 
 	-- setup
 	parse_args()
@@ -122,14 +129,14 @@ procedure main()
 	if verbose then
 		puts(1, "Base path: '" & base_path & "'\n")
 	end if
-	
+
 	-- process each file
 	for file_idx = 1 to length(files) do
 		object namespace
-		integer opti 
+		integer opti
 		sequence opts
 		integer nowiki
-		
+
 		fname = files[file_idx]
 		if length(fname) = 0 or match("#", fname) = 1 then
 			continue -- skip blank lines and comment lines
@@ -138,13 +145,13 @@ procedure main()
 			complete &= fname[2..$] & "\n"
 			continue
 		end if
-		
+
 		nowiki = 0
 		opti = find('<', fname)
 		if opti != 0 then
 			opts = stdseq:split(fname[opti + 1 .. $])
 			fname = fname[1 .. opti - 1]
-		
+
 			nowiki =  (find("nowiki", opts) != 0)
 		end if
 		fname = trim(fname)
@@ -153,6 +160,17 @@ procedure main()
 		end ifdef
 		if verbose then
 			printf(1, "Processing file '%s'  ... ", { fname })
+		end if
+
+		if dir_strip_cnt > 0 then
+			out_fname = seq:split(fname, SLASH)
+			if length(out_fname) >= dir_strip_cnt then
+				out_fname = out_fname[dir_strip_cnt..$]
+			end if
+			out_fname[$] = filebase(out_fname[$])
+			out_fname = join(out_fname[dir_strip_cnt..$], "_")
+		else
+			out_fname = fname
 		end if
 
 		-- If using an assembly file, then all files are relative to the
@@ -166,7 +184,6 @@ procedure main()
 		else
 			parsed = p:parse(fname, template, {nowiki})
 		end if
-		
 
 		switch parsed[1] do
 			case ERROR then
@@ -182,11 +199,15 @@ procedure main()
 				parsed = parsed[2]
 		end switch
 
+		complete &= sprintf("\n!!CONTEXT:%s\n", { fname })
+
 		if sequence(namespace) then
-			complete &= sprintf("\n!!CONTEXT:%s\n\n!!namespace:%s\n\n%s", {fname, namespace, parsed})
-		else
-			complete &= sprintf("\n!!CONTEXT:%s\n\n%s", {fname, parsed})
+			complete &= sprintf("!!namespace:%s\n", { namespace })
 		end if
+
+		complete &= sprintf("%%%%output = %s\n\n", { out_fname })
+
+		complete &= parsed
 
 		if verbose then
 			puts(1, "done\n")
