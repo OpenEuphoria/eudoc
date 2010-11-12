@@ -18,6 +18,7 @@ include std/convert.e
 include common.e
 include parsers.e as p
 
+constant APP_VERSION = "1.0.0"
 global integer verbose = 0
 object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0, template = 0
 sequence files -- files to parse (in order)
@@ -32,10 +33,11 @@ end procedure
 
 procedure parse_args()
 	sequence opts = {
-		{ "v", "verbose",  "Verbose output", {NO_PARAMETER}},
-		{ "a", "assembly", "Assembly file",  {HAS_PARAMETER, "filename", ONCE} },
-		{ "o", "output",   "Output file",    {MANDATORY, HAS_PARAMETER, "filename",ONCE} },
-		{ "t", "template", "Template file",  {HAS_PARAMETER, "filename",ONCE}},
+		{ 0,   "verbose",  "Verbose output", { NO_PARAMETER } },
+		{ "a", "assembly", "Assembly file",  { HAS_PARAMETER, "filename", ONCE } },
+		{ "o", "output",   "Output file",    { MANDATORY, HAS_PARAMETER, "filename",ONCE } },
+		{ "t", "template", "Template file",  { HAS_PARAMETER, "filename",ONCE } },
+		{ "v", "version",  "Display program version", { VERSIONING, "eudoc v" & APP_VERSION } },
 		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
 		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
 	}
