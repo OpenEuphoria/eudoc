@@ -122,7 +122,7 @@ procedure main()
 	end if
 
 	ifdef WINDOWS then
-		base_path = replace_all(base_path, '/', SLASH)
+		base_path = match_replace('/', base_path, SLASH)
 	end ifdef
 	if base_path[$] = SLASH then
 		base_path = base_path[1 .. $-1]
@@ -158,7 +158,7 @@ procedure main()
 		end if
 		fname = trim(fname)
 		ifdef WINDOWS then
-			fname = replace_all(fname, '/', SLASH)
+			fname = match_replace('/', fname, SLASH)
 		end ifdef
 		if verbose then
 			printf(1, "Processing file '%s'  ... ", { fname })
