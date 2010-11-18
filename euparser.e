@@ -14,7 +14,7 @@ include common.e
 enum C_NO = 0, C_SOURCE, C_FILE
 
 -- Setup parser
-keep_blanks(TRUE)
+keep_newlines(TRUE)
 keep_comments(TRUE)
 string_numbers(TRUE)
 
@@ -177,7 +177,7 @@ function read_var_sig()
 			elsif find(tok[TTYPE], { T_COMMA, T_LBRACE }) then
 				result &= ' '
 			end if
-		elsif tok[TTYPE] = T_BLANK then
+		elsif tok[TTYPE] = T_NEWLINE then
 			-- do nothing
 		else
 			exit
@@ -197,7 +197,7 @@ function read_sig()
 			result &= ' ' & tok[TDATA]
 			result &= read_routine_sig()
 			exit
-		elsif tok[TTYPE] = T_BLANK then
+		elsif tok[TTYPE] = T_NEWLINE then
 			-- Do nothing
 		else
 			putback_token()
@@ -332,7 +332,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 							tmp = tok[TDATA][5..$]
 						end if
 						tmp &= read_comment_block()
-					elsif tok[TTYPE] = T_BLANK then
+					elsif tok[TTYPE] = T_NEWLINE then
 						-- do nothing
 						continue
 					else
