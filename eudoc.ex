@@ -18,8 +18,9 @@ include std/convert.e
 include common.e
 include parsers.e as p
 
+constant re_output = re:new(`%%output=.*\n`)
 constant APP_VERSION = "1.0.0"
-global integer verbose = 0
+global integer verbose = 0, single_file = 0
 object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0, template = 0
 sequence files -- files to parse (in order)
 
@@ -33,21 +34,23 @@ end procedure
 
 procedure parse_args()
 	sequence opts = {
-		{ 0,   "verbose",  "Verbose output", { NO_PARAMETER } },
 		{ "a", "assembly", "Assembly file",  { HAS_PARAMETER, "filename", ONCE } },
-		{ "o", "output",   "Output file",    { MANDATORY, HAS_PARAMETER, "filename",ONCE } },
 		{ "t", "template", "Template file",  { HAS_PARAMETER, "filename",ONCE } },
-		{ "v", "version",  "Display program version", { VERSIONING, "eudoc v" & APP_VERSION } },
 		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
+		{ "o", "output",   "Output file",    { MANDATORY, HAS_PARAMETER, "filename",ONCE } },
+		{  0,  "single",   "Do not include file seperators", { NO_PARAMETER, ONCE } },
+		{  0,  "verbose",  "Verbose output", { NO_PARAMETER } },
+		{ "v", "version",  "Display program version", { VERSIONING, "eudoc v" & APP_VERSION } },
 		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
 	}
 
 	map:map o      = cmd_parse(opts, routine_id("extra_help"))
-	verbose        = map:get(o, "verbose", 0)
 	assembly_fname = map:get(o, "assembly", 0)
-	output_file    = map:get(o, "output", 0)
 	template       = map:get(o, "template", 0)
 	dir_strip_cnt  = map:get(o, "strip", 0)
+	output_file    = map:get(o, "output", 0)
+	single_file    = map:get(o, "single", 0)
+	verbose        = map:get(o, "verbose", 0)
 	files          = map:get(o, OPT_EXTRAS, {})
 
 	if sequence(dir_strip_cnt) then
@@ -142,9 +145,12 @@ procedure main()
 		fname = files[file_idx]
 		if length(fname) = 0 or match("#", fname) = 1 then
 			continue -- skip blank lines and comment lines
-		elsif match(":", fname) = 1 then
+		elsif fname[1] = ':' then
 			-- Inline code, add it to the output
-			complete &= fname[2..$] & "\n"
+			if single_file = 0 or begins("%%output=", fname[2..$]) = 0 then
+				complete &= fname[2..$] & "\n"
+			end if
+
 			continue
 		end if
 
@@ -207,7 +213,11 @@ procedure main()
 			complete &= sprintf("!!namespace:%s\n", { namespace })
 		end if
 
-		complete &= sprintf("%%%%output = %s\n\n", { out_fname })
+		if single_file = 0 then
+			complete &= sprintf("%%%%(2)output = %s\n\n", { out_fname })
+		else
+			parsed = re:find_replace(re_output, parsed, "")
+		end if
 
 		complete &= parsed
 
