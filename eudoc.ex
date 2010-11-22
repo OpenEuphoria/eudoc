@@ -195,7 +195,7 @@ procedure main()
 		end if
 
 		if single_file = 0 then
-			complete &= sprintf("%%%%(2)output = %s\n\n", { out_fname })
+			complete &= sprintf("%%%%output = %s\n\n", { out_fname })
 		else
 			parsed = re:find_replace(re_output, parsed, "")
 		end if
