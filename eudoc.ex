@@ -20,7 +20,7 @@ include parsers.e as p
 
 constant re_output = re:new(`%%output=.*\n`)
 constant APP_VERSION = "1.0.0"
-global integer verbose = 0, single_file = 0
+global integer verbose = 0, single_file = 0, wrap_len = 78
 object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0
 sequence files -- files to parse (in order)
 
@@ -34,9 +34,10 @@ end procedure
 
 procedure parse_args()
 	sequence opts = {
+		{ "o", "output",   "Output file",    { MANDATORY, HAS_PARAMETER, "filename",ONCE } },
 		{ "a", "assembly", "Assembly file",  { HAS_PARAMETER, "filename", ONCE } },
 		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
-		{ "o", "output",   "Output file",    { MANDATORY, HAS_PARAMETER, "filename",ONCE } },
+		{  0,  "wrap",     "Wrap long signatures to <chars> characters", { HAS_PARAMETER, "chars", ONCE } },
 		{  0,  "single",   "Do not include file seperators", { NO_PARAMETER, ONCE } },
 		{  0,  "verbose",  "Verbose output", { NO_PARAMETER } },
 		{ "v", "version",  "Display program version", { VERSIONING, "eudoc v" & APP_VERSION } },
@@ -46,6 +47,7 @@ procedure parse_args()
 	map:map o      = cmd_parse(opts, routine_id("extra_help"))
 	assembly_fname = map:get(o, "assembly", 0)
 	dir_strip_cnt  = map:get(o, "strip", 0)
+	wrap_len       = map:get(o, "wrap_len", 78)
 	output_file    = map:get(o, "output", 0)
 	single_file    = map:get(o, "single", 0)
 	verbose        = map:get(o, "verbose", 0)

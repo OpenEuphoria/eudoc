@@ -47,19 +47,20 @@ export function convert_api_block(sequence block, object namespace)
 			eustrip = 1
 		elsif pre:is_match(pre_header, line) then
 			if eu:match("Signature:", line) then
-				func_name = lines[i+1]
-				-- matching done by pcre
-				func_search = pre:find(pre_item_name, func_name)
-				second = 0
-				if atom(func_search) then
-					func_name = lines[i+2]
-					func_search = pre:find(pre_item_name, func_name)
-					second = 1
-				end if
-				integer builtin = 0
-				if atom(func_search) then
-					func_name = "BadSig:" & lines[i+1]
+				integer found_on = 0, builtin = 0
+				for j = i to length(lines) do
+					func_search = pre:find(pre_item_name, lines[j])
+					if sequence(func_search) then
+						found_on = j
+						exit
+					end if
+				end for
+
+				-- Signature should have been within 5 lines of the Signature: line
+				if found_on = 0 or found_on > i + 5 then
+					func_name = "BadSig: " & lines[i+1]
 				else
+					func_name = lines[found_on]
 					builtin = func_search[2][1] != func_search[2][2]
 					func_name = func_name[func_search[6][1]..func_search[6][2]]
 					if eu:find(func_name, processed_funcs) then
@@ -68,6 +69,7 @@ export function convert_api_block(sequence block, object namespace)
 						-- multiple times in an ifdef
 						return ""
 					end if
+
 					processed_funcs &= { func_name }
 				end if
 				if builtin then
@@ -78,16 +80,6 @@ export function convert_api_block(sequence block, object namespace)
 					new_block &= {"@[:" & func_name & "|]" }
 				end if
 				new_block &= {"==== " & func_name}
-				new_block &= { "<eucode>" }
-				if second then
-					new_block &= { lines[i+1] }
-					new_block &= { trim(lines[i+2]) }
-					i += 2
-				else
-					new_block &= { trim(lines[i+1]) }
-					i += 1
-				end if
-				new_block &= { "</eucode>" }
 			elsif match("Description:", line) then
 				-- do nothing
 			else

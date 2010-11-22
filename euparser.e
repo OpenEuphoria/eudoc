@@ -18,6 +18,43 @@ keep_newlines(TRUE)
 keep_comments(TRUE)
 string_numbers(TRUE)
 
+function split_signature(sequence s, integer width = 78)
+	if length(s) < width then
+		return s
+	end if
+
+	integer i = 1, nested = 0, in_str = 0, check_point = 0, char_count = 0
+	while i < length(s) do
+		char_count += 1
+
+		if char_count > width and check_point != 0 then
+			s = splice(s, "\n       ", check_point + 1)
+			char_count = i - check_point
+			check_point = 0
+		end if
+
+		if find(s[i], "\"'`") then
+			if in_str > 0 and in_str = s[i] and s[i-1] != '\\' then
+				in_str = 0
+			else
+				in_str = s[i]
+			end if
+		elsif find(s[i], "({") then
+			nested += 1
+		elsif find(s[i], "})") then
+			nested -= 1
+		end if
+
+		if s[i] = ',' and nested < 2 and in_str = 0 then
+			check_point = i
+		end if
+
+		i += 1
+	end while
+
+	return s
+end function
+
 object tokens, tok
 integer idx = 0
 
@@ -85,7 +122,7 @@ function read_routine_sig()
 		end if
 	end while
 
-	return result
+	return split_signature(result, wrap_len)
 end function
 
 function read_var_sig()
@@ -173,7 +210,7 @@ function read_var_sig()
 			if tok[TTYPE] = T_CHAR then
 				result &= '\''
 			elsif tok[TTYPE] = T_STRING then
-				result &= '\"'
+				result &= '"'
 			end if
 
 			result &= tok[TDATA]
@@ -306,8 +343,13 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 			sequence visibility = tok[TDATA]
 
+	label "try_next_token"
 			if not next_token() then
 				crash("Unexpected end of the file")
+			end if
+
+			if tok[TTYPE] = T_NEWLINE then
+				goto "try_next_token"
 			end if
 
 			sequence varSigPrefix = trim(visibility & " " & tok[TDATA])
@@ -318,9 +360,9 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 				signature = read_sig()
 				if length(signature) > 0 then
-					tmp = "Signature:\n" &
+					tmp = "Signature:\n<eucode>\n" &
 						"include " & include_filename & "\n" &
-						signature & "\n\n" &
+						signature & "\n</eucode>\n\n" &
 						"Description:\n" & tmp
 					content &= convert_api_block(tmp, ns_name) & "\n\n"
 					tmp = ""
@@ -332,7 +374,9 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				-- Must be a global, public or exported variable/constant of some type
 				sequence var_sig = { 0, 0 }
 				loop do
+			label "try_varsig_again"
 					tmp = ""
+
 					-- See if we have a comment block
 					if not next_token() then
 						crash("Unexpected end of the file")
@@ -347,7 +391,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						tmp &= read_comment_block()
 					elsif tok[TTYPE] = T_NEWLINE then
 						-- do nothing
-						continue
+						goto "try_varsig_again"
 					else
 						putback_token()
 					end if
@@ -355,13 +399,15 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					var_sig = read_var_sig()
 					var_sig[2] = trim(var_sig[2])
 					if length(var_sig[2]) > 0 then
-						tmp = "Signature:\n" &
+						tmp = "Signature:\n<eucode>\n" &
 							"include " & include_filename & "\n" &
-							varSigPrefix & " " & var_sig[2] & "\n\n" &
+							varSigPrefix & " " & var_sig[2] & "\n</eucode>\n\n" &
 							"Description:\n" & tmp & "\n\n"
 						content &= convert_api_block(tmp, ns_name) & "\n\n"
 					end if
-				until var_sig[1] = 0 end loop
+					
+					until var_sig[1] = 0 
+				end loop
 				tmp = ""
 
 				putback_token()
@@ -375,9 +421,9 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					-- Look for the signature
 					signature = read_sig()
 					if length(signature) > 0 then
-						tmp = "Signature:\n" &
+						tmp = "Signature:\n<eucode>\n" &
 							"include " & include_filename & "\n" &
-							signature & "\n\n" &
+							signature & "\n</eucode>\n\n" &
 							"Description:\n" &
 							"  " & tmp
 					end if
@@ -411,3 +457,4 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 	return {API, content, ns_name}
 end function
+
