@@ -31,6 +31,14 @@ function next_token()
 	return 1
 end function
 
+function peek_next_token()
+	if idx + 1 > length(tokens[1]) then
+		return T_EOF
+	end if
+
+	return tokens[1][idx + 1]
+end function
+
 procedure putback_token()
 	idx -= 1
 	tok = tokens[1][idx]
@@ -173,7 +181,7 @@ function read_var_sig()
 			if tok[TTYPE] = T_CHAR then
 				result &= '\''
 			elsif tok[TTYPE] = T_STRING then
-				result &= '\"'
+				result &= '"'
 			elsif find(tok[TTYPE], { T_COMMA, T_LBRACE }) then
 				result &= ' '
 			end if
@@ -229,6 +237,12 @@ function read_comment_block()
 			else
 				block &= trim(tok[TDATA][3..$]) & '\n'
 			end if
+		elsif tok[TTYPE] = T_NEWLINE then
+			object nxt = peek_next_token()
+			if atom(nxt) or nxt[TTYPE] != T_COMMENT then
+				putback_token()
+				exit
+			end if
 		else
 			putback_token()
 			exit
@@ -236,9 +250,10 @@ function read_comment_block()
 	end while
 
 	if in_eucode then
-		printf(1,"eucode was not ended (ln %d, col %d)\n"
-                 ,{  tok[ET_ERR_LINE], tok[ET_ERR_COLUMN]
-                  })
+		printf(1, "eucode was not ended (ln %d, col %d)\n", {
+			tok[ET_ERR_LINE], tok[ET_ERR_COLUMN]
+		})
+
 		abort(1)
 	end if
 
@@ -252,14 +267,12 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	sequence include_filename
 	integer pos
 	sequence path_data
-	object namespace = 0
-
+	object ns_name = 0
 
 	path_data = pathinfo(fname, '/')
 	ifdef not UNIX then
 		path_data = lower(path_data)
 	end ifdef
-
 
 	if ends("/std", path_data[PATH_DIR]) then
 		pos = length(path_data[PATH_DIR]) - 3
@@ -280,10 +293,10 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 	-- Any errors during parsing?
 	if tokens[2] then
-		return {ERROR, sprintf("(file %s ln %d, col %d) %s"
-	                              , {fname, tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN]
-	                              , error_string(tokens[2])})
-      	       }
+		return { ERROR, sprintf("(file %s ln %d, col %d) %s", {
+				fname, tokens[ET_ERR_LINE], tokens[ET_ERR_COLUMN], error_string(tokens[2])
+			})
+		}
 	end if
 
 	while next_token() do
@@ -309,7 +322,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						"include " & include_filename & "\n" &
 						signature & "\n\n" &
 						"Description:\n" & tmp
-					content &= convert_api_block(tmp,namespace) & "\n\n"
+					content &= convert_api_block(tmp, ns_name) & "\n\n"
 					tmp = ""
 				end if
 			elsif find(tok[TDATA], { "include" }) then
@@ -346,7 +359,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 							"include " & include_filename & "\n" &
 							varSigPrefix & " " & var_sig[2] & "\n\n" &
 							"Description:\n" & tmp & "\n\n"
-						content &= convert_api_block(tmp,namespace) & "\n\n"
+						content &= convert_api_block(tmp, ns_name) & "\n\n"
 					end if
 				until var_sig[1] = 0 end loop
 				tmp = ""
@@ -371,7 +384,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					-- We need to find the signature
 				end if
 
-				content &= convert_api_block(tmp,namespace) & "\n\n"
+				content &= convert_api_block(tmp, ns_name) & "\n\n"
 				tmp = ""
 
 				in_comment = C_NO
@@ -387,13 +400,14 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				tmp = ""
 
 			end if
-		elsif equal(tok[TDATA],"namespace") then
+		elsif equal(tok[TDATA], "namespace") then
 			if not next_token() then
 				crash("Unexpected end of the file")
 			end if
-			namespace = tok[TDATA]
+
+			ns_name = tok[TDATA]
 		end if
 	end while
 
-	return {API, content, namespace}
+	return {API, content, ns_name}
 end function
