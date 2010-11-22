@@ -51,7 +51,7 @@ function get_parser(sequence fname)
 	return -1
 end function
 
-export function parse(sequence fname, sequence template, object parse_opts = {})
+export function parse(sequence fname, object parse_opts = {})
 	integer parser_id = get_parser(fname)
 	
 	if parser_id = -1 then

@@ -21,7 +21,7 @@ include parsers.e as p
 constant re_output = re:new(`%%output=.*\n`)
 constant APP_VERSION = "1.0.0"
 global integer verbose = 0, single_file = 0
-object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0, template = 0
+object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0
 sequence files -- files to parse (in order)
 
 procedure extra_help()
@@ -35,7 +35,6 @@ end procedure
 procedure parse_args()
 	sequence opts = {
 		{ "a", "assembly", "Assembly file",  { HAS_PARAMETER, "filename", ONCE } },
-		{ "t", "template", "Template file",  { HAS_PARAMETER, "filename",ONCE } },
 		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
 		{ "o", "output",   "Output file",    { MANDATORY, HAS_PARAMETER, "filename",ONCE } },
 		{  0,  "single",   "Do not include file seperators", { NO_PARAMETER, ONCE } },
@@ -46,7 +45,6 @@ procedure parse_args()
 
 	map:map o      = cmd_parse(opts, routine_id("extra_help"))
 	assembly_fname = map:get(o, "assembly", 0)
-	template       = map:get(o, "template", 0)
 	dir_strip_cnt  = map:get(o, "strip", 0)
 	output_file    = map:get(o, "output", 0)
 	single_file    = map:get(o, "single", 0)
@@ -55,14 +53,6 @@ procedure parse_args()
 
 	if sequence(dir_strip_cnt) then
 		dir_strip_cnt = to_number(dir_strip_cnt)
-	end if
-
-	if sequence(template) then
-		template = read_file(template, TEXT_MODE)
-		if atom(template) then
-			printf(1, "Could not read template file '%s'\n", { map:get(o, "template") })
-			abort(1)
-		end if
 	end if
 end procedure
 
@@ -106,15 +96,6 @@ procedure main()
 	end if
 
 	complete = "%%disallow={camelcase}\n"
-	if atom(template) then
-		template = "<html>\n" &
-			"<head>\n" &
-			"<link rel=\"stylesheet\" href=\"eudoc.css\">\n" &
-			"<title>${TITLE}</title>\n" &
-			"</head>\n" &
-			"<body>${BODY}</body>\n" &
-			"</html>\n"
-	end if
 
 	-- read the assembly file
 	if sequence(assembly_fname) then
@@ -137,7 +118,7 @@ procedure main()
 
 	-- process each file
 	for file_idx = 1 to length(files) do
-		object namespace
+		object ns_name
 		integer opti
 		sequence opts
 		integer nowiki
@@ -185,12 +166,12 @@ procedure main()
 		-- location of that assembly file.
 		if sequence(assembly_fname) then
 			if not absolute_path(fname) then
-				parsed = p:parse(join({base_path, fname}, SLASH), template, {nowiki})
+				parsed = p:parse(join({base_path, fname}, SLASH), {nowiki})
 			else
-				parsed = p:parse(fname, template, {nowiki})
+				parsed = p:parse(fname, {nowiki})
 			end if
 		else
-			parsed = p:parse(fname, template, {nowiki})
+			parsed = p:parse(fname, {nowiki})
 		end if
 
 		switch parsed[1] do
@@ -200,17 +181,17 @@ procedure main()
 
 			case CREOLE then
 				parsed = parsed[2]
-				namespace = 0
+				ns_name = 0
 
 			case API then
-				namespace = parsed[3]
+				ns_name = parsed[3]
 				parsed = parsed[2]
 		end switch
 
 		complete &= sprintf("\n!!CONTEXT:%s\n", { fname })
 
-		if sequence(namespace) then
-			complete &= sprintf("!!namespace:%s\n", { namespace })
+		if sequence(ns_name) then
+			complete &= sprintf("!!namespace:%s\n", { ns_name })
 		end if
 
 		if single_file = 0 then
