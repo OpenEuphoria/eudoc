@@ -44,7 +44,7 @@ procedure parse_args()
 		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
 	}
 
-	map:map o      = cmd_parse(opts, routine_id("extra_help"))
+	map:map o      = cmd_parse(opts, {HELP_RID, routine_id("extra_help")})
 	assembly_fname = map:get(o, "assembly", 0)
 	dir_strip_cnt  = map:get(o, "strip", 0)
 	wrap_len       = map:get(o, "wrap_len", 78)
