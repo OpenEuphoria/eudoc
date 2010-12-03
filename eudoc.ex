@@ -44,14 +44,19 @@ procedure parse_args()
 		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
 	}
 
-	map:map o      = cmd_parse(opts, {HELP_RID, routine_id("extra_help")})
+	map:map o      = cmd_parse(opts, { HELP_RID, routine_id("extra_help") })
 	assembly_fname = map:get(o, "assembly", 0)
 	dir_strip_cnt  = map:get(o, "strip", 0)
-	wrap_len       = map:get(o, "wrap_len", 78)
 	output_file    = map:get(o, "output", 0)
 	single_file    = map:get(o, "single", 0)
 	verbose        = map:get(o, "verbose", 0)
 	files          = map:get(o, OPT_EXTRAS, {})
+
+	if sequence(map:get(o, "wrap", 78)) then
+		wrap_len = to_number(map:get(o, "wrap"))
+	else
+		wrap_len = map:get(o, "wrap", 78)
+	end if
 
 	if sequence(dir_strip_cnt) then
 		dir_strip_cnt = to_number(dir_strip_cnt)
