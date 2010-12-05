@@ -50,7 +50,7 @@ procedure parse_args()
 	output_file    = map:get(o, "output", 0)
 	single_file    = map:get(o, "single", 0)
 	verbose        = map:get(o, "verbose", 0)
-	files          = map:get(o, OPT_EXTRAS, {})
+	files          = map:get(o, cmdline:EXTRAS, {})
 
 	if sequence(map:get(o, "wrap", 78)) then
 		wrap_len = to_number(map:get(o, "wrap"))
