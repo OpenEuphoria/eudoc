@@ -5,6 +5,7 @@ include std/filesys.e
 include std/types.e
 include std/error.e
 include std/search.e
+include std/console.e
 
 include euphoria/tokenize.e
 
@@ -302,7 +303,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	object tmp
 	sequence content = "", signature
 	sequence include_filename
-	integer pos
+	integer pos, ignore_next = 0
 	sequence path_data
 	object ns_name = 0
 
@@ -353,8 +354,10 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 			end if
 
 			sequence varSigPrefix = trim(visibility & " " & tok[TDATA])
-
-			if find(tok[TDATA], { "function", "procedure", "type" }) then
+		
+			if ignore_next then
+				ignore_next = 0
+			elsif find(tok[TDATA], { "function", "procedure", "type" }) then
 				putback_token()
 				putback_token()
 
@@ -388,7 +391,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						else
 							tmp = tok[TDATA][5..$]
 						end if
-						tmp &= read_comment_block()
+						tmp &= read_comment_block()						
 					elsif tok[TTYPE] = T_NEWLINE then
 						-- do nothing
 						goto "try_varsig_again"
@@ -397,13 +400,15 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 					end if
 
 					var_sig = read_var_sig()
-					var_sig[2] = trim(var_sig[2])
-					if length(var_sig[2]) > 0 then
-						tmp = "Signature:\n<eucode>\n" &
-							"include " & include_filename & "\n" &
-							varSigPrefix & " " & var_sig[2] & "\n</eucode>\n\n" &
-							"Description:\n" & tmp & "\n\n"
-						content &= convert_api_block(tmp, ns_name) & "\n\n"
+					if not match("@nodoc@", tmp) then
+						var_sig[2] = trim(var_sig[2])
+						if length(var_sig[2]) > 0 then
+							tmp = "Signature:\n<eucode>\n" &
+								"include " & include_filename & "\n" &
+								varSigPrefix & " " & var_sig[2] & "\n</eucode>\n\n" &
+								"Description:\n" & tmp & "\n\n"
+							content &= convert_api_block(tmp, ns_name) & "\n\n"
+						end if
 					end if
 					
 					until var_sig[1] = 0 
@@ -416,25 +421,30 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 			if in_comment then
 				putback_token()
 				tmp = read_comment_block()
-
-				if in_comment = C_SOURCE and not has_signature(tmp) then
-					-- Look for the signature
-					signature = read_sig()
-					if length(signature) > 0 then
-						tmp = "Signature:\n<eucode>\n" &
-							"include " & include_filename & "\n" &
-							signature & "\n</eucode>\n\n" &
-							"Description:\n" &
-							"  " & tmp
+				if match("@nodoc@", tmp) then
+					ignore_next = 1
+					in_comment = C_NO
+					tmp = ""
+				else
+					if in_comment = C_SOURCE and not has_signature(tmp) then
+						-- Look for the signature
+						signature = read_sig()
+						if length(signature) > 0 then
+							tmp = "Signature:\n<eucode>\n" &
+								"include " & include_filename & "\n" &
+								signature & "\n</eucode>\n\n" &
+								"Description:\n" &
+								"  " & tmp
+						end if
+						-- We need to find the signature
 					end if
-					-- We need to find the signature
+	
+					content &= convert_api_block(tmp, ns_name) & "\n\n"
+					tmp = ""
+	
+					in_comment = C_NO
 				end if
-
-				content &= convert_api_block(tmp, ns_name) & "\n\n"
-				tmp = ""
-
-				in_comment = C_NO
-
+				
 			elsif begins("--****", tok[TDATA]) then
 				-- Start of file comment
 				in_comment = C_FILE
