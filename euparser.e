@@ -306,6 +306,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	integer pos, ignore_next = 0
 	sequence path_data
 	object ns_name = 0
+	sequence ns_stmt = "", ns_stmt2 = ""
 
 	path_data = pathinfo(fname, '/')
 	ifdef not UNIX then
@@ -338,7 +339,14 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	end if
 
 	while next_token() do
-		if find(tok[TDATA], { "global", "public", "export", "override" }) then
+		if equal(tok[TDATA], "namespace") then
+			if not next_token() then
+				crash("Unexpected end of the file")
+			end if
+
+			ns_name = tok[TDATA]
+			ns_stmt = "namespace " & ns_name & "\n"
+		elsif find(tok[TDATA], { "global", "public", "export", "override" }) then
 			-- These are items that do not have a comment associated with them
 			-- but we want them listed anyway, as they are exported in some fashion
 
@@ -365,6 +373,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				if length(signature) > 0 then
 					tmp = "Signature:\n<eucode>\n" &
 						"include " & include_filename & "\n" &
+						ns_stmt &
 						signature & "\n</eucode>\n\n" &
 						"Description:\n" & tmp
 					content &= convert_api_block(tmp, ns_name) & "\n\n"
@@ -405,6 +414,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						if length(var_sig[2]) > 0 then
 							tmp = "Signature:\n<eucode>\n" &
 								"include " & include_filename & "\n" &
+								ns_stmt &
 								varSigPrefix & " " & var_sig[2] & "\n</eucode>\n\n" &
 								"Description:\n" & tmp & "\n\n"
 							content &= convert_api_block(tmp, ns_name) & "\n\n"
@@ -432,6 +442,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						if length(signature) > 0 then
 							tmp = "Signature:\n<eucode>\n" &
 								"include " & include_filename & "\n" &
+								ns_stmt &
 								signature & "\n</eucode>\n\n" &
 								"Description:\n" &
 								"  " & tmp
@@ -456,12 +467,6 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 				tmp = ""
 
 			end if
-		elsif equal(tok[TDATA], "namespace") then
-			if not next_token() then
-				crash("Unexpected end of the file")
-			end if
-
-			ns_name = tok[TDATA]
 		end if
 	end while
 
