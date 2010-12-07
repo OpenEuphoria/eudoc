@@ -55,6 +55,10 @@ export function convert_api_block(sequence block, object namespace)
 						exit
 					end if
 				end for
+				
+				if match("<built-in>", lines[found_on]) then
+					lines[found_on] = "<eucode>\n" & lines[found_on] & "\n</eucode>"
+				end if
 
 				-- Signature should have been within 5 lines of the Signature: line
 				if found_on = 0 or found_on > i + 5 then
