@@ -56,10 +56,6 @@ export function convert_api_block(sequence block, object namespace)
 					end if
 				end for
 				
-				if match("<built-in>", lines[found_on]) then
-					lines[found_on] = "<eucode>\n" & lines[found_on] & "\n</eucode>"
-				end if
-
 				-- Signature should have been within 5 lines of the Signature: line
 				if found_on = 0 or found_on > i + 5 then
 					func_name = "BadSig: " & lines[i+1]
@@ -76,6 +72,11 @@ export function convert_api_block(sequence block, object namespace)
 
 					processed_funcs &= { func_name }
 				end if
+
+				if match("<built-in>", lines[found_on]) then
+					lines[found_on] = "<eucode>\n" & lines[found_on] & "\n</eucode>"
+				end if
+
 				if builtin then
 					new_block &= {"@[:eu:" & func_name & "|]" }
 				elsif sequence(namespace) then
@@ -83,7 +84,10 @@ export function convert_api_block(sequence block, object namespace)
 				else					
 					new_block &= {"@[:" & func_name & "|]" }
 				end if
+
 				new_block &= {"==== " & func_name}
+
+
 			elsif match("Description:", line) then
 				-- do nothing
 			else
