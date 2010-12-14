@@ -408,6 +408,20 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						putback_token()
 					end if
 
+					-- Check for an enum by
+					next_token()
+					if tok[TTYPE] = T_KEYWORD and equal(tok[TDATA], "by") then
+						-- skip the next token also (by XYZ)
+						next_token()
+
+						if equal(tok[TDATA], "-") then
+							next_token()
+						end if
+						goto "try_varsig_again"
+					else
+						putback_token()
+					end if
+
 					var_sig = read_var_sig()
 					if not match("@nodoc@", tmp) then
 						var_sig[2] = trim(var_sig[2])
