@@ -414,7 +414,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						-- skip the next token also (by XYZ)
 						next_token()
 
-						if equal(tok[TDATA], "-") then
+						if length(tok[TDATA]) and find(tok[TDATA][1], "-/*") then
 							next_token()
 						end if
 						goto "try_varsig_again"
