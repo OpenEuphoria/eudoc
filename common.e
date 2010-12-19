@@ -19,6 +19,7 @@ constant
 	pre_item_name = pre:new(`\s*(\<built-in\>)?\s+((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`)
 
 sequence processed_funcs = {}
+export integer eucode_tested = 0, eucode_passed = 0
 
 export procedure start_new_file(sequence fname)
 	processed_funcs = {}

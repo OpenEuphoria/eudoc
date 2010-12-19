@@ -261,19 +261,21 @@ function read_sig()
 end function
 
 function read_comment_block()
-	sequence block = "", eucode_block = ""
+	sequence block = "", eucode_block = "", fail_msg = ""
 	integer in_eucode = 0
 
 	while next_token() do
 		if tok[TTYPE] = T_COMMENT then
 			if match("<eucode>", tok[TDATA]) then
 				in_eucode = 1
+				fail_msg = ""
 				eucode_block = "include " & canonical_path(current_filename) & "\n"
 			elsif match("</eucode>", tok[TDATA]) then
-				in_eucode = 0
+				in_eucode = -1
 
                 if length(eucode_block) then
 					eucode_test_idx += 1
+					eucode_tested += 1
 					sequence test_filename = sprintf("%s_%d.e", {
 							canonical_path(work_path) & SLASH & filebase(current_filename),
 							eucode_test_idx
@@ -284,7 +286,12 @@ function read_comment_block()
 					if system_exec(test_cmd) != 0 then
 						printf(2, "F")
 						eucode_test_failed += 1
+
+						fail_msg = "\n\n**FAILED**\n\n{{{\n" & 
+							read_file(test_filename & ".log") & 
+							"\n}}}\n\n"
 					else
+						eucode_passed += 1
 						if verbose then
 							printf(2, ".")
 						end if
@@ -301,10 +308,17 @@ function read_comment_block()
 
 			if length(tok[TDATA]) < 3 then
 				block &= '\n'
-			elsif in_eucode then
+			elsif in_eucode = 1 then
 				block &= tok[TDATA][4..$] & '\n'
 			else
 				block &= trim(tok[TDATA][3..$]) & '\n'
+				if in_eucode = -1 then
+					in_eucode = 0
+
+					if length(fail_msg) then
+						block &= fail_msg
+					end if
+				end if
 			end if
 		elsif tok[TTYPE] = T_NEWLINE then
 			object nxt = peek_next_token()

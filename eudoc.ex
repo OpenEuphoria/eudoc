@@ -114,6 +114,10 @@ procedure main()
 
 	complete = "%%disallow={camelcase}\n"
 
+	if test_eucode then
+		complete &= "= Eucode Block Testing\n\n"
+	end if
+
 	-- read the assembly file
 	if sequence(assembly_fname) then
 		files &= read_lines(assembly_fname)
@@ -165,7 +169,7 @@ procedure main()
 			fname = match_replace('/', fname, SLASH)
 		end ifdef
 		if verbose then
-			printf(1, "Processing file '%s'  ... ", { fname })
+			printf(1, "Processing file '%s' ... ", { abbreviate_path(fname) })
 		end if
 
 		if dir_strip_cnt > 0 then
@@ -231,6 +235,13 @@ procedure main()
 		end if
 	else
 		puts(1, "\nNo content to write\n")
+	end if
+
+	if test_eucode then
+		printf(1, "passed %d of %d, %d%%\n", {
+				eucode_passed, eucode_tested,
+				floor(100 * (eucode_passed / eucode_tested))
+			})
 	end if
 end procedure
 
