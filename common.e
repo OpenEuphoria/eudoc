@@ -3,8 +3,8 @@ include std/text.e
 include std/regex.e as pre
 include std/pretty.e
 
-export sequence base_path = ""
-
+export sequence base_path = "", work_path = "./eudoc.wrk"
+export integer test_eucode
 export enum
 	ERROR,
 	CREOLE,

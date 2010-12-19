@@ -22,6 +22,7 @@ constant re_output = re:new(`%%output=.*\n`)
 constant APP_VERSION = "1.0.0"
 global integer verbose = 0, single_file = 0, wrap_len = 78
 object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0
+
 sequence files -- files to parse (in order)
 
 procedure extra_help()
@@ -39,6 +40,8 @@ procedure parse_args()
 		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
 		{  0,  "wrap",     "Wrap long signatures to <chars> characters", { HAS_PARAMETER, "chars", ONCE } },
 		{  0,  "single",   "Do not include file seperators", { NO_PARAMETER, ONCE } },
+        {  0,  "test-eucode", "Test eucode blocks for correctness", { NO_PARAMETER } },
+        {  0,  "work-dir", "Set the temporary working directory", { HAS_PARAMETER, ONCE } },
 		{  0,  "verbose",  "Verbose output", { NO_PARAMETER } },
 		{ "v", "version",  "Display program version", { VERSIONING, "eudoc v" & APP_VERSION } },
 		{  0,   0,         "Additional input filenames can also be supplied.",    0 }
@@ -50,7 +53,14 @@ procedure parse_args()
 	output_file    = map:get(o, "output", 0)
 	single_file    = map:get(o, "single", 0)
 	verbose        = map:get(o, "verbose", 0)
+	test_eucode    = map:get(o, "test-eucode", 0)
+	work_path      = map:get(o, "work-dir", work_path)
 	files          = map:get(o, cmdline:EXTRAS, {})
+
+	if test_eucode then
+		work_path = canonical_path(work_path)
+		create_directory(work_path)
+	end if
 
 	if sequence(map:get(o, "wrap", 78)) then
 		wrap_len = to_number(map:get(o, "wrap"))

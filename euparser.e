@@ -14,6 +14,10 @@ include common.e
 -- Comment status: No, Source, File
 enum C_NO = 0, C_SOURCE, C_FILE
 
+-- eudoc testing filename index
+integer eucode_test_idx, eucode_test_failed
+sequence current_filename
+
 -- Setup parser
 keep_newlines(TRUE)
 keep_comments(TRUE)
@@ -257,16 +261,43 @@ function read_sig()
 end function
 
 function read_comment_block()
-	sequence block = ""
+	sequence block = "", eucode_block = ""
 	integer in_eucode = 0
 
 	while next_token() do
 		if tok[TTYPE] = T_COMMENT then
 			if match("<eucode>", tok[TDATA]) then
 				in_eucode = 1
+				eucode_block = "include " & canonical_path(current_filename) & "\n"
 			elsif match("</eucode>", tok[TDATA]) then
 				in_eucode = 0
-			end if
+
+                if length(eucode_block) then
+					eucode_test_idx += 1
+					sequence test_filename = sprintf("%s_%d.e", {
+							canonical_path(work_path) & SLASH & filebase(current_filename),
+							eucode_test_idx
+						})
+					write_file(test_filename, eucode_block)
+					sequence test_cmd = sprintf("eui -test -batch %s  > %s.log", { 
+							test_filename, test_filename })
+					if system_exec(test_cmd) != 0 then
+						printf(2, "F")
+						eucode_test_failed += 1
+					else
+						if verbose then
+							printf(2, ".")
+						end if
+
+						delete_file(test_filename)
+						delete_file(test_filename & ".log")
+					end if
+
+                    eucode_block = ""
+                end if
+			elsif in_eucode and test_eucode and length(tok[TDATA]) > 3 then
+            	eucode_block &= trim(tok[TDATA][4..$]) & '\n'
+            end if
 
 			if length(tok[TDATA]) < 3 then
 				block &= '\n'
@@ -308,6 +339,9 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	object ns_name = 0
 	sequence ns_stmt = "", ns_stmt2 = ""
 
+	eucode_test_idx = 0
+	eucode_test_failed = 0
+
 	path_data = pathinfo(fname, '/')
 	ifdef not UNIX then
 		path_data = lower(path_data)
@@ -329,6 +363,8 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	-- Parse source file
 	idx = 0
 	tokens = tokenize_file(fname)
+
+	current_filename = fname
 
 	-- Any errors during parsing?
 	if tokens[2] then
@@ -483,6 +519,10 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 			end if
 		end if
 	end while
+
+	if test_eucode then
+		printf(2, " passed %d of %d ", { eucode_test_idx - eucode_test_failed, eucode_test_idx })
+	end if
 
 	return {API, content, ns_name}
 end function
