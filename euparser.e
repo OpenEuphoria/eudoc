@@ -273,7 +273,7 @@ function read_comment_block()
 			elsif match("</eucode>", tok[TDATA]) then
 				in_eucode = -1
 
-                if length(eucode_block) then
+                if length(eucode_block) and test_eucode then
 					eucode_test_idx += 1
 					eucode_tested += 1
 					sequence test_filename = sprintf("%s_%d.e", {
