@@ -24,6 +24,7 @@ global integer verbose = 0, single_file = 0, wrap_len = 78
 object dir_strip_cnt = 0, assembly_fname = 0, output_file = 0
 
 sequence files -- files to parse (in order)
+sequence defines -- euphoria style defines
 
 procedure extra_help()
 	puts(1, `
@@ -40,6 +41,7 @@ procedure parse_args()
 		{  0,  "strip",    "Strip n leading directory names from output filename", { HAS_PARAMETER, "n", ONCE } },
 		{  0,  "wrap",     "Wrap long signatures to <chars> characters", { HAS_PARAMETER, "chars", ONCE } },
 		{  0,  "single",   "Do not include file seperators", { NO_PARAMETER, ONCE } },
+		{ "d", 0,          "Define a pre-processor word", { HAS_PARAMETER, MULTIPLE } },
         {  0,  "test-eucode", "Test eucode blocks for correctness", { NO_PARAMETER } },
         {  0,  "work-dir", "Set the temporary working directory", { HAS_PARAMETER, ONCE } },
 		{  0,  "verbose",  "Verbose output", { NO_PARAMETER } },
@@ -55,6 +57,7 @@ procedure parse_args()
 	verbose        = map:get(o, "verbose", 0)
 	test_eucode    = map:get(o, "test-eucode", 0)
 	work_path      = map:get(o, "work-dir", work_path)
+	defines        = map:get(o, "d", {})
 	files          = map:get(o, cmdline:EXTRAS, {})
 
 	if test_eucode then
@@ -138,6 +141,7 @@ procedure main()
 	end if
 
 	-- process each file
+	integer skip = 0
 	for file_idx = 1 to length(files) do
 		object ns_name
 		integer opti
@@ -147,6 +151,20 @@ procedure main()
 		fname = files[file_idx]
 		if length(fname) = 0 or match("#", fname) = 1 then
 			continue -- skip blank lines and comment lines
+		elsif match("end ifdef", fname) = 1 then
+			skip = 0
+			continue
+		elsif match("ifdef", fname) = 1 then
+			sequence word = fname[7..$]
+			if find(word, defines) then
+				continue
+			else
+				skip = 1
+				continue
+			end if
+		elsif skip then
+			-- We are skipping to an ifdef check that was false
+			continue
 		elsif fname[1] = ':' then
 			-- Inline code, add it to the output
 			if single_file = 0 or begins("%%output=", fname[2..$]) = 0 then
