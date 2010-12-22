@@ -10,9 +10,11 @@ endif
 
 all : build/eudoc
 
-build/main-.c build/eudoc.mak : eudoc.ex $(EUDOC)
+build/main-.c : eudoc.ex $(EUDOC)
 	-mkdir build
 	cd build && euc -makefile ../eudoc.ex
+
+build/eudoc.mak : build/main-.c
 
 build/eudoc : build/main-.c build/eudoc.mak
 	 $(MAKE) -C build -f eudoc.mak
