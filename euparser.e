@@ -11,6 +11,12 @@ include euphoria/tokenize.e
 
 include common.e
 
+-- std, euphoria, one or more user supplied include prefix
+-- so ../include/xyz/eio.e wiil display include xyz/eio.e
+-- needs to be creole.opts option add to or replace std,euphoria
+
+sequence include_prefix = split("std,euphoria", ",")
+
 -- Comment status: No, Source, File
 enum C_NO = 0, C_SOURCE, C_FILE
 
@@ -18,7 +24,7 @@ enum C_NO = 0, C_SOURCE, C_FILE
 integer eucode_test_idx, eucode_test_failed
 sequence current_filename
 
--- Setup parser
+-- Setup parser tokenizer
 keep_newlines(TRUE)
 keep_comments(TRUE)
 string_numbers(TRUE)
@@ -360,19 +366,22 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 	ifdef not UNIX then
 		path_data = lower(path_data)
 	end ifdef
+	include_filename = path_data[PATH_FILENAME]
 
-	if ends("/std", path_data[PATH_DIR]) then
-		pos = length(path_data[PATH_DIR]) - 3
+	for x = 1 to length(include_prefix) do
+
+		if ends("/"&include_prefix[x], path_data[PATH_DIR]) then
+			pos = length(path_data[PATH_DIR]) - length(include_prefix[x])
 
 	else
-		pos = match("/std/", path_data[PATH_DIR])
+			pos = match("/"&include_prefix[x]&"/", path_data[PATH_DIR])
 	end if
 
 	if pos != 0 then
 		include_filename = path_data[PATH_DIR][pos + 1 .. $] & '/' & path_data[PATH_FILENAME]
-	else
-		include_filename = path_data[PATH_FILENAME]
+			exit
 	end if
+	end for
 
 	-- Parse source file
 	idx = 0
