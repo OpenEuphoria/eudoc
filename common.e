@@ -2,6 +2,7 @@ include std/sequence.e as s
 include std/text.e
 include std/regex.e as pre
 include std/pretty.e
+include std/math.e
 
 export sequence base_path = "", work_path = "./eudoc.wrk"
 export integer test_eucode
@@ -49,7 +50,8 @@ export function convert_api_block(sequence block, object namespace)
 		elsif pre:is_match(pre_header, line) then
 			if eu:match("Signature:", line) then
 				integer found_on = 0, builtin = 0
-				for j = i to length(lines) do
+				-- The actual signature should be within 5 lines of the "Signature:" line
+				for j = i to min({i + 5, length(lines)}) do
 					func_search = pre:find(pre_item_name, lines[j])
 					if sequence(func_search) then
 						found_on = j
@@ -57,9 +59,13 @@ export function convert_api_block(sequence block, object namespace)
 					end if
 				end for
 				
-				-- Signature should have been within 5 lines of the Signature: line
-				if found_on = 0 or found_on > i + 5 then
-					func_name = "BadSig: " & lines[i+1]
+				if found_on = 0 then
+					func_name = "BadSig: "
+					if i < length(lines) then
+						func_name &= lines[i+1]
+					else
+						func_name &= "?! EOF !?"
+					end if
 				else
 					func_name = lines[found_on]
 					builtin = func_search[2][1] != func_search[2][2]
@@ -72,10 +78,10 @@ export function convert_api_block(sequence block, object namespace)
 					end if
 
 					processed_funcs &= { func_name }
-				end if
-
-				if match("<built-in>", lines[found_on]) then
-					lines[found_on] = "<eucode>\n" & lines[found_on] & "\n</eucode>"
+					
+					if match("<built-in>", lines[found_on]) then
+						lines[found_on] = "<eucode>\n" & lines[found_on] & "\n</eucode>"
+					end if
 				end if
 
 				if builtin then
