@@ -88,7 +88,9 @@ function peek_next_token()
 end function
 
 procedure putback_token()
-	idx -= 1
+	if idx > 1 then
+		idx -= 1
+	end if
 	tok = tokens[1][idx]
 end procedure
 
@@ -396,7 +398,8 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 			})
 		}
 	end if
-
+	tmp = ""
+	
 	while next_token() do
 		if equal(tok[TDATA], "namespace") then
 			if not next_token() then
