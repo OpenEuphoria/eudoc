@@ -34,5 +34,5 @@ clean :
 distclean : clean
 	rm Makefile
 
-.PHONY : all clean install uninstall disclean
+.PHONY : all clean install uninstall disclean mostlyclean
 .SECONDARY : build/eudoc.mak build/main-.c
