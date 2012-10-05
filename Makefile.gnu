@@ -12,7 +12,7 @@ all : build/eudoc
 
 build/main-.c : eudoc.ex $(EUDOC)
 	-mkdir build
-	cd build && euc -makefile ../eudoc.ex
+	cd build && euc -gcc -makefile ../eudoc.ex
 
 build/eudoc.mak : build/main-.c
 
@@ -25,6 +25,9 @@ install : build/eudoc
 uninstall :
 	-rm $(DESTDIR)$(PREFIX)/bin/eudoc
 
+mostlyclean : build
+	-rm build/*.{c,o,mak,h}
+	
 clean :
 	-rm -rf build
 
@@ -32,3 +35,4 @@ distclean : clean
 	rm Makefile
 
 .PHONY : all clean install uninstall disclean
+.SECONDARY : build/eudoc.mak build/main-.c
