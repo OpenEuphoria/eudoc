@@ -17,7 +17,9 @@ constant
 	pre_eucode_begin = pre:new(`\s*\<eucode\>\s*`),
 	pre_eucode_end = pre:new(`^\s*\</eucode\>\s*$`),
 	pre_header = pre:new(`\s*[\w\s0-9_]+:\s*$`),
-	pre_item_name = pre:new(`\s*(\<built-in\>)?\s+((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`)
+	pre_item_name = pre:new(`\s*(\<built-in\>)?\s+((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`),
+	pre_block_begin = pre:new(`{{{`),
+	pre_block_end   = pre:new(`}}}`)
 
 sequence processed_funcs = {}
 export integer eucode_tested = 0, eucode_passed = 0
@@ -35,10 +37,10 @@ export function convert_api_block(sequence block, object namespace)
 	sequence line, lines = s:split( block, "\n"), new_block = {}
 	integer in_eucode = 0, eustrip = 1, is_func = eu:match("Signature:", block), i = 1
 	sequence kill_me
+	integer in_pre = 0
 
 	while i <= length(lines) do
 		line = lines[i]
-
 		if pre:is_match(pre_eucode_begin, line) then
 			in_eucode = 1
 			eustrip = eu:match("<eucode>", line)
@@ -47,8 +49,18 @@ export function convert_api_block(sequence block, object namespace)
 			new_block &= {"</eucode>"}
 			in_eucode = 0
 			eustrip = 1
+		elsif pre:is_match( pre_block_begin, line ) then
+			in_pre = 1
+			eustrip = eu:match("{{{", line)
+			new_block &= {"{{{"}
+		elsif pre:is_match( pre_block_end, line ) then
+			in_pre = 0
+			eustrip = 1
+			new_block &= {"}}}"}
 		elsif pre:is_match(pre_header, line) then
-			if eu:match("Signature:", line) then
+			if in_eucode or in_pre then
+				new_block &= {line}
+			elsif eu:match("Signature:", line) then
 				integer found_on = 0, builtin = 0
 				-- The actual signature should be within 5 lines of the "Signature:" line
 				for j = i to min({i + 5, length(lines)}) do
@@ -100,7 +112,7 @@ export function convert_api_block(sequence block, object namespace)
 			else
 				new_block &= {"===== " & line}
 			end if
-		elsif in_eucode then
+		elsif in_eucode or in_pre then
 			if length(line) >= eustrip and eustrip > 0 then
 				new_block &= {line[eustrip..$]}
 			else
