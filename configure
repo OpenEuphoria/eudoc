@@ -1,1 +1,20 @@
+#!/bin/sh
+
+CONFIG_FILE=config.gnu
+echo "# configuration for eudoc" > config.gnu
+# parameters
+while [ "$1" != "" ]; do
+    case $1 in
+	--prefix*)
+		VAL=`echo $1 | cut -d = -f 2`
+		if [ "$VAL" = "$1" ]; then
+			shift ; VAL=$1
+		fi
+
+		echo "PREFIX=$VAL" >> ${CONFIG_FILE}
+		;;
+	esac
+	shift
+done
+
 echo include Makefile.gnu > Makefile
