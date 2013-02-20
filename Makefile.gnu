@@ -1,6 +1,14 @@
 # Makefile for building and installing eudoc
 # Assumes a working euphoria installation
 
+CONFIG_FILE = config.gnu
+
+ifndef CONFIG
+CONFIG = $(CONFIG_FILE)
+endif
+
+include $(CONFIG_FILE)
+
 EUDOC= $(wildcard *.e)
 
 ifeq "$(PREFIX)" ""
