@@ -17,7 +17,7 @@ constant
 	pre_eucode_begin = pre:new(`\s*\<eucode\>\s*`),
 	pre_eucode_end = pre:new(`^\s*\</eucode\>\s*$`),
 	pre_header = pre:new(`\s*[\w\s0-9_]+:\s*$`),
-	pre_item_name = pre:new(`\s*(\<built-in\>)?\s+((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?]+)`),
+	pre_item_name = pre:new(`^\s*(\<built-in\>\s+)?\s*((public|global|export)\s+)?(procedure|function|type|constant|enum|sequence|integer|atom|object)\s+([A-Za-z0-9_\?#]+)`),
 	pre_block_begin = pre:new(`{{{`),
 	pre_block_end   = pre:new(`}}}`)
 

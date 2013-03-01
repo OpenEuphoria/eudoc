@@ -249,7 +249,7 @@ function read_sig()
 	sequence result = ""
 
 	while next_token() do
-		if find(tok[TDATA], { "global", "export", "public", "override" }) then
+		if find(tok[TDATA], { "global", "export", "public" }) then
 			result = tok[TDATA]
 		elsif find(tok[TDATA], { "procedure", "function", "type" }) then
 			result &= ' ' & tok[TDATA]
@@ -472,7 +472,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 					-- Check for an enum by
 					next_token()
-					if tok[TTYPE] = T_KEYWORD and equal(tok[TDATA], "by") then
+					if tok[TTYPE] = T_KEYWORD and find(tok[TDATA], {"by", "type"}) then
 						-- skip the next token also (by XYZ)
 						next_token()
 
