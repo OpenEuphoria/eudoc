@@ -249,7 +249,7 @@ function read_sig()
 	sequence result = ""
 
 	while next_token() do
-		if find(tok[TDATA], { "global", "export", "public" }) then
+		if find(tok[TDATA], { "global", "export", "public", "override" }) then
 			result = tok[TDATA]
 		elsif find(tok[TDATA], { "procedure", "function", "type" }) then
 			result &= ' ' & tok[TDATA]
