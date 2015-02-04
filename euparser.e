@@ -462,7 +462,7 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 						else
 							tmp = tok[TDATA][5..$]
 						end if
-						tmp &= read_comment_block()						
+						tmp &= read_comment_block()
 					elsif tok[TTYPE] = T_NEWLINE then
 						-- do nothing
 						goto "try_varsig_again"
@@ -486,6 +486,15 @@ export function parse_euphoria_source(sequence fname, object params, object extr
 
 					var_sig = read_var_sig()
 					if not match("@nodoc@", tmp) then
+                        -- Normally, the comments that come before the declaration of something in
+                        -- the source are supposed to appear after the declaration title in the
+                        -- documentation. Here, we check to see whether we have a title comment, in
+                        -- which case we should put it before the declaration. Ticket: 265
+						if begins("=", tmp) then
+							content &= tmp
+							tmp = ""
+						end if
+					
 						var_sig[2] = trim(var_sig[2])
 						if length(var_sig[2]) > 0 then
 							tmp = "Signature:\n<eucode>\n" &
